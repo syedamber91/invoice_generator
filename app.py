@@ -170,28 +170,44 @@ def generate_pdf(invoice_df, letterhead_bytes, grand_total, header_info):
         label_w = table_width * label_width_pct
         value_w = table_width * (1 - label_width_pct)
         
-        # Label Cell (Left)
-        can.setFillColorRGB(0.95, 0.95, 0.95) # Light Grey
+        # Border Color (Thin Grey)
+        can.setStrokeColorRGB(0.7, 0.7, 0.7)
+        can.setLineWidth(0.5)
+        
+        # Label Cell (Left) - Light Grey Background #F2F2F2 (approx 0.95)
+        can.setFillColorRGB(0.95, 0.95, 0.95) 
         can.rect(table_x, y - row_height, label_w, row_height, stroke=1, fill=1)
         
-        # Value Cell (Right)
-        can.setFillColorRGB(1, 1, 1) # White
+        # Value Cell (Right) - White Background
+        can.setFillColorRGB(1, 1, 1) 
         can.rect(table_x + label_w, y - row_height, value_w, row_height, stroke=1, fill=1)
         
-        # Text
+        # Reset colors for Text
         can.setFillColorRGB(0, 0, 0) # Black Text
         can.setFont(font_name, 10 if not is_bold else 11)
         
         # Label Text (Left Aligned with padding)
         can.drawString(table_x + 5, y - 14, label)
         
-        # Value Text
+        # Value Text Alignment Logic
+        # Check if text is Arabic to force Right Alignment
         val_text = process_text(value)
-        if align_value_right:
+        
+        # Simple heuristic: Check if reshaped text has RTL characters or user forced right align
+        # Since we reshaped it, checking for Arabic unicode block in original 'value' is safer
+        # But 'align_value_right' flag overrides everything (used for numbers)
+        
+        is_arabic_text = any('\u0600' <= char <= '\u06FF' for char in str(value))
+        
+        if align_value_right or is_arabic_text:
              # Right align relative to the end of the value cell
              can.drawRightString(table_x + label_w + value_w - 5, y - 14, val_text)
         else:
              can.drawString(table_x + label_w + 5, y - 14, val_text)
+        
+        # Reset Line Width
+        can.setLineWidth(1)
+        can.setStrokeColorRGB(0, 0, 0)
 
 
     # --- Header Table ---
@@ -240,12 +256,24 @@ def generate_pdf(invoice_df, letterhead_bytes, grand_total, header_info):
     ]
     
     can.setFont(font_name, 9)
-    can.setFillColorRGB(0.9, 0.9, 0.9)
-    can.rect(30, y_pos - 5, 535, 15, fill=1, stroke=0)
+    can.setFont(font_name, 9)
+    # Header Background & Border
+    can.setStrokeColorRGB(0.7, 0.7, 0.7)
+    can.setLineWidth(0.5)
+    can.setFillColorRGB(0.95, 0.95, 0.95) # #F2F2F2
+    
+    can.rect(30, y_pos - 5, 535, 15, fill=1, stroke=1)
+    
     can.setFillColorRGB(0, 0, 0)
+    can.setStrokeColorRGB(0, 0, 0) # Reset stroke for text/lines? Actually lines should be grey too?
+    # Let's keep text black.
     
     for x, title in headers:
         can.drawCentredString(x, y_pos, title)
+    
+    # Reset for rows
+    can.setLineWidth(1) # Or keep 0.5?
+    pass
         
     y_pos -= 25
     
@@ -299,8 +327,13 @@ def generate_pdf(invoice_df, letterhead_bytes, grand_total, header_info):
         # 8. Total Incl (Far Left)
         can.drawCentredString(60, y_pos, f"{total_incl:,.2f}")
         
-        can.setStrokeColorRGB(0.8, 0.8, 0.8)
+        # Row Separator (Thin Grey)
+        can.setLineWidth(0.5)
+        can.setStrokeColorRGB(0.7, 0.7, 0.7)
         can.line(30, y_pos - 5, 565, y_pos - 5)
+        
+        # Reset
+        can.setLineWidth(1)
         can.setStrokeColorRGB(0, 0, 0)
         
         y_pos -= 20
@@ -312,11 +345,19 @@ def generate_pdf(invoice_df, letterhead_bytes, grand_total, header_info):
             can.setFont(font_name, 9)
             y_pos = 700 # Restart higher on new pages? Or same. Let's do 700.
             # Redraw headers
-            can.setFillColorRGB(0.9, 0.9, 0.9)
-            can.rect(30, y_pos - 5, 535, 15, fill=1, stroke=0)
+            can.setStrokeColorRGB(0.7, 0.7, 0.7)
+            can.setLineWidth(0.5)
+            can.setFillColorRGB(0.95, 0.95, 0.95) # #F2F2F2
+            
+            can.rect(30, y_pos - 5, 535, 15, fill=1, stroke=1)
+            
             can.setFillColorRGB(0, 0, 0)
+            can.setStrokeColorRGB(0, 0, 0)
+            
             for x, title in headers:
                 can.drawCentredString(x, y_pos, title)
+            
+            can.setLineWidth(1)
             y_pos -= 25
 
     # Grand Total Section
