@@ -24,7 +24,7 @@ if not os.path.exists(FONT_PATH):
 if not os.path.exists(FONT_PATH):
     FONT_PATH = "Arial.ttf" # Fallback to local if user provides it
 
-st.set_page_config(page_title="Dynamic Invoice Generator", layout="wide")
+st.set_page_config(page_title="Dynamic Quotation Builder", layout="wide")
 
 # --- Database Functions ---
 def init_db():
@@ -218,7 +218,7 @@ def generate_pdf(invoice_df, letterhead_bytes, grand_total, header_info):
     table_top -= row_height
     
     # 2. Bill No
-    draw_styled_row(table_top, "Bill No", str(header_info['bill_no']))
+    draw_styled_row(table_top, "Quotation No", str(header_info['bill_no']))
     table_top -= row_height
     
     # 3. Customer
@@ -415,23 +415,23 @@ def generate_pdf(invoice_df, letterhead_bytes, grand_total, header_info):
     return None
 
 # --- Main App ---
-st.title("📄 Professional Invoice Generator")
+st.title("📄 Professional Quotation Builder")
 
 # Initialize DB
 init_db()
 
 # Tabs
-tab1, tab2 = st.tabs(["📝 Invoice Generator", "💾 Manage Data"])
+tab1, tab2 = st.tabs(["📝 Quotation Generator", "💾 Manage Data"])
 
 with tab1:
-    st.header("Create Invoice")
+    st.header("Create Quotation")
     
-    # 1. Invoice Details
-    st.subheader("Invoice Details")
+    # 1. Invoice Details (now Quotation Details)
+    st.subheader("Quotation Details")
     col1, col2 = st.columns(2)
     with col1:
-        inv_date = st.date_input("Date")
-        bill_no = st.text_input("Bill Number", value="1001")
+        date = st.date_input("Date")
+        bill_no = st.text_input("Quotation Number", value="1001")
         customer_name = st.text_input("Customer Name")
     with col2:
         customer_address = st.text_input("Customer Address")
@@ -470,7 +470,7 @@ with tab1:
         
         if not selected_items.empty:
             st.divider()
-            st.subheader("Invoice Preview")
+            st.subheader("Quotation Preview")
             
             selected_items['Subtotal'] = selected_items['Price'] * selected_items['Quantity']
             selected_items['Tax (15%)'] = selected_items['Subtotal'] * 0.15
@@ -481,23 +481,25 @@ with tab1:
             st.metric("Grand Total", f"SAR {grand_total:,.2f}")
             
             if letterhead_file:
-                if st.button("Generate PDF Invoice", type="primary"):
+                if st.button("Generate PDF Quotation", type="primary"):
                     # Collect header info
                     header_info = {
-                        "date": inv_date,
+                        "date": str(date), # Changed from inv_date
                         "bill_no": bill_no,
                         "customer": customer_name,
                         "address": customer_address,
                         "vat_no": customer_vat,
-                        "terms": payment_terms
+                        "terms": payment_terms # Changed from payment_method
                     }
                     
                     pdf_bytes = generate_pdf(selected_items, letterhead_file, grand_total, header_info)
+                    
                     if pdf_bytes:
+                        st.success("✅ PDF Generated!")
                         st.download_button(
-                            label="⬇️ Download Final PDF",
+                            label="Download PDF",
                             data=pdf_bytes,
-                            file_name=f"Invoice_{bill_no}.pdf",
+                            file_name=f"Quotation_{bill_no}.pdf",
                             mime="application/pdf"
                         )
                     else:
