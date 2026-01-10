@@ -154,6 +154,14 @@ def generate_pdf(invoice_df, letterhead_bytes, grand_total, header_info):
     
     can.setFont(font_name, 10)
     
+    # --- Title: Quotation (Arabic) ---
+    # Centered below letterhead
+    title_text = process_text("عرض سعر")
+    can.setFont(font_name, 14) # Smaller, standard weight
+    can.drawCentredString(width / 2, 660, title_text)
+    
+    can.setFont(font_name, 10) # Reset
+    
     # Coordinates
     # Adjusted for better spacing below letterhead header
     table_top = 620 
