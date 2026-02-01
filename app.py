@@ -520,45 +520,159 @@ with tab1:
 
 with tab2:
     st.header("Data Management")
-    st.write("Upload a Master Price List to update the database.")
     
-    upload_type = st.radio("Upload Format", ["Excel (.xlsx)", "PDF Price List (Item_Pricing.pdf)"])
+    # Sub-tabs for different management options
+    manage_tab1, manage_tab2 = st.tabs(["📊 Edit Products", "📤 Import from File"])
     
-    if upload_type == "Excel (.xlsx)":
-        uploaded_master = st.file_uploader("Upload Excel", type=["xlsx"], key="excel_uploader")
-        if uploaded_master and st.button("Update from Excel"):
-            try:
-                master_df = pd.read_excel(uploaded_master)
-                success, msg = save_products_to_db(master_df)
-                if success:
-                    st.success(msg)
-                    st.rerun()
+    with manage_tab1:
+        st.subheader("Product & Price Editor")
+        st.write("Edit product names and prices directly, add new products, or delete existing ones.")
+        
+        current_df = load_products_from_db()
+        
+        # --- Add New Product Section ---
+        st.markdown("##### ➕ Add New Product")
+        add_col1, add_col2, add_col3 = st.columns([3, 2, 1])
+        with add_col1:
+            new_product_name = st.text_input("Product Name", key="new_product_name", placeholder="Enter product name...")
+        with add_col2:
+            new_product_price = st.number_input("Price (SAR)", min_value=0.0, step=0.01, format="%.2f", key="new_product_price")
+        with add_col3:
+            st.write("") # Spacer for alignment
+            if st.button("➕ Add", key="add_product_btn", use_container_width=True):
+                if new_product_name.strip():
+                    # Add to database
+                    new_row = pd.DataFrame([{'Product': new_product_name.strip(), 'Price': new_product_price}])
+                    success, msg = save_products_to_db(new_row)
+                    if success:
+                        st.success(f"Added '{new_product_name}' at SAR {new_product_price:.2f}")
+                        st.rerun()
+                    else:
+                        st.error(msg)
+                else:
+                    st.warning("Please enter a product name.")
+        
+        st.divider()
+        
+        # --- Edit Existing Products ---
+        st.markdown("##### ✏️ Edit Existing Products")
+        st.caption("Double-click any cell to edit. Changes are saved when you click 'Save All Changes'.")
+        
+        if not current_df.empty:
+            # Add an ID column for tracking deletions (hidden from user display but used internally)
+            edit_df = current_df.copy()
+            edit_df.insert(0, 'Delete', False)  # Checkbox for deletion
+            
+            edited_products = st.data_editor(
+                edit_df,
+                column_config={
+                    "Delete": st.column_config.CheckboxColumn(
+                        "🗑️ Delete",
+                        help="Check to delete this product",
+                        default=False,
+                    ),
+                    "Product": st.column_config.TextColumn(
+                        "Product Name",
+                        help="Product name (must be unique)",
+                        max_chars=200,
+                    ),
+                    "Price": st.column_config.NumberColumn(
+                        "Price (SAR)",
+                        help="Unit price in SAR",
+                        min_value=0.0,
+                        format="SAR %.2f",
+                    ),
+                },
+                hide_index=True,
+                use_container_width=True,
+                num_rows="fixed",
+                key="product_editor"
+            )
+            
+            # Action buttons
+            btn_col1, btn_col2 = st.columns([1, 4])
+            with btn_col1:
+                if st.button("💾 Save All Changes", type="primary", use_container_width=True):
+                    # Handle deletions first
+                    to_delete = edited_products[edited_products['Delete'] == True]['Product'].tolist()
+                    to_update = edited_products[edited_products['Delete'] == False][['Product', 'Price']]
+                    
+                    if to_delete:
+                        # Delete marked products
+                        conn = init_db()
+                        c = conn.cursor()
+                        for product_name in to_delete:
+                            c.execute("DELETE FROM products WHERE name = ?", (product_name,))
+                        conn.commit()
+                        conn.close()
+                    
+                    # Update/save remaining products
+                    if not to_update.empty:
+                        # Clear and re-save to handle any name changes
+                        clear_db()
+                        success, msg = save_products_to_db(to_update)
+                        if success:
+                            delete_msg = f" Deleted {len(to_delete)} product(s)." if to_delete else ""
+                            st.success(f"✅ Saved {len(to_update)} products.{delete_msg}")
+                            st.rerun()
+                        else:
+                            st.error(msg)
+                    elif to_delete:
+                        st.success(f"✅ Deleted {len(to_delete)} product(s).")
+                        st.rerun()
+            
+            with btn_col2:
+                st.caption(f"📦 Total Products: **{len(current_df)}**")
+        else:
+            st.info("No products in database. Add your first product above or import from a file.")
+        
+        st.divider()
+        
+        # --- Danger Zone ---
+        with st.expander("⚠️ Danger Zone"):
+            st.warning("This action cannot be undone!")
+            if st.button("🗑️ Clear Entire Database", type="secondary"):
+                clear_db()
+                st.success("Database cleared.")
+                st.rerun()
+    
+    with manage_tab2:
+        st.subheader("Import from File")
+        st.write("Upload a Master Price List to update the database.")
+        
+        upload_type = st.radio("Upload Format", ["Excel (.xlsx)", "PDF Price List (Item_Pricing.pdf)"], key="upload_format")
+        
+        if upload_type == "Excel (.xlsx)":
+            uploaded_master = st.file_uploader("Upload Excel", type=["xlsx"], key="excel_uploader")
+            if uploaded_master and st.button("Update from Excel"):
+                try:
+                    master_df = pd.read_excel(uploaded_master)
+                    success, msg = save_products_to_db(master_df)
+                    if success:
+                        st.success(msg)
+                        st.rerun()
+                    else:
+                        st.error(msg)
+                except Exception as e:
+                    st.error(f"Error reading file: {e}")
+                    
+        else: # PDF
+            uploaded_pdf = st.file_uploader("Upload Price List PDF", type=["pdf"], key="pdf_uploader")
+            if uploaded_pdf and st.button("Update from PDF"):
+                df, msg = parse_pricing_pdf_stream(uploaded_pdf)
+                if df is not None:
+                    success, save_msg = save_products_to_db(df)
+                    if success:
+                        st.success(f"Parsed {len(df)} items. {save_msg}")
+                        st.rerun()
+                    else:
+                        st.error(save_msg)
                 else:
                     st.error(msg)
-            except Exception as e:
-                st.error(f"Error reading file: {e}")
-                
-    else: # PDF
-        uploaded_pdf = st.file_uploader("Upload Price List PDF", type=["pdf"], key="pdf_uploader")
-        if uploaded_pdf and st.button("Update from PDF"):
-            df, msg = parse_pricing_pdf_stream(uploaded_pdf)
-            if df is not None:
-                success, save_msg = save_products_to_db(df)
-                if success:
-                    st.success(f"Parsed {len(df)} items. {save_msg}")
-                    st.rerun()
-                else:
-                    st.error(save_msg)
-            else:
-                st.error(msg)
-
-    st.divider()
-    st.subheader("Current Database Status")
-    current_df = load_products_from_db()
-    st.write(f"Total Products: {len(current_df)}")
-    if not current_df.empty:
-        st.dataframe(current_df, use_container_width=True)
-    
-    if st.button("Dangerous: Clear Database"):
-        clear_db()
-        st.rerun()
+        
+        st.divider()
+        st.subheader("Current Database Status")
+        status_df = load_products_from_db()
+        st.write(f"Total Products: {len(status_df)}")
+        if not status_df.empty:
+            st.dataframe(status_df, use_container_width=True)
