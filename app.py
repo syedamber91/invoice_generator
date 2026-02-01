@@ -427,6 +427,27 @@ def generate_pdf(invoice_df, letterhead_bytes, grand_total, header_info):
 # Custom CSS for better UI - Oasis Cotton Company Theme
 st.markdown("""
 <style>
+    /* ===== Cross-Browser Normalization ===== */
+    *, *::before, *::after {
+        -webkit-box-sizing: border-box;
+        -moz-box-sizing: border-box;
+        box-sizing: border-box;
+    }
+    
+    /* Normalize font rendering across browsers */
+    body, input, button, select, textarea {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
+    }
+    
+    /* Safari input/button appearance fix */
+    input, button, select, textarea {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+    }
+    
     /* ===== Oasis Cotton Company Color Palette ===== */
     :root {
         --oasis-gold: #C9A961;
@@ -443,6 +464,8 @@ st.markdown("""
     
     /* Sidebar styling */
     section[data-testid="stSidebar"] {
+        background: -webkit-linear-gradient(top, #1a1a2e 0%, #2d2d44 100%);
+        background: -moz-linear-gradient(top, #1a1a2e 0%, #2d2d44 100%);
         background: linear-gradient(180deg, #1a1a2e 0%, #2d2d44 100%);
         border-right: 3px solid #C9A961;
     }
@@ -465,12 +488,18 @@ st.markdown("""
     
     /* Main header styling - Elegant dark with gold accent */
     .main-header {
+        background: -webkit-linear-gradient(315deg, #1a1a2e 0%, #2d2d44 100%);
+        background: -moz-linear-gradient(315deg, #1a1a2e 0%, #2d2d44 100%);
         background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
         padding: 1.2rem 1.5rem;
+        -webkit-border-radius: 12px;
+        -moz-border-radius: 12px;
         border-radius: 12px;
         margin-bottom: 1.5rem;
         color: white;
         border-bottom: 4px solid #C9A961;
+        -webkit-box-shadow: 0 4px 15px rgba(26, 26, 46, 0.3);
+        -moz-box-shadow: 0 4px 15px rgba(26, 26, 46, 0.3);
         box-shadow: 0 4px 15px rgba(26, 26, 46, 0.3);
     }
     .main-header h1 {
@@ -488,11 +517,17 @@ st.markdown("""
     
     /* Step indicator styling - Gold accent */
     .step-box {
+        background: -webkit-linear-gradient(315deg, #f5f0e8 0%, #fff 100%);
+        background: -moz-linear-gradient(315deg, #f5f0e8 0%, #fff 100%);
         background: linear-gradient(135deg, #f5f0e8 0%, #fff 100%);
         border-left: 4px solid #C9A961;
         padding: 0.7rem 1rem;
         margin-bottom: 0.8rem;
+        -webkit-border-radius: 0 8px 8px 0;
+        -moz-border-radius: 0 8px 8px 0;
         border-radius: 0 8px 8px 0;
+        -webkit-box-shadow: 0 2px 8px rgba(201, 169, 97, 0.15);
+        -moz-box-shadow: 0 2px 8px rgba(201, 169, 97, 0.15);
         box-shadow: 0 2px 8px rgba(201, 169, 97, 0.15);
     }
     .step-number {
