@@ -596,16 +596,19 @@ st.markdown("""
     }
     
     /* ===== Tables / Dataframes & Data Editors ===== */
+    /* ===== Tables / Dataframes & Data Editors ===== */
     [data-testid="stDataFrame"], [data-testid="stTable"], .stDataFrame, .stDataEditor {
         background-color: #ffffff !important;
         color: #000000 !important;
+        border: 1px solid #C9A961 !important;
     }
     /* Header cells */
     [data-testid="stDataFrame"] div[role="columnheader"],
     div[data-testid="stDataFrame"] div[class*="header"] {
-        background-color: #fdfbf7 !important;
+        background-color: #ffffff !important;
         color: #000000 !important;
         border-bottom: 2px solid #C9A961 !important;
+        border-right: 1px solid #e0d2b4 !important;
         font-weight: 700 !important;
     }
     /* Data cells */
@@ -613,16 +616,20 @@ st.markdown("""
     div[data-testid="stDataFrame"] div[class*="cell"] {
         color: #000000 !important;
         background-color: #ffffff !important;
+        border-bottom: 1px solid #e0d2b4 !important;
+        border-right: 1px solid #e0d2b4 !important;
     }
     /* Row styling */
     [data-testid="stDataFrame"] div[role="row"] {
         background-color: #ffffff !important;
         color: #000000 !important;
+        border-bottom: 1px solid #e0d2b4 !important;
     }
     /* Ensure glide data grid elements are white */
     .glide-data-grid {
         background-color: #ffffff !important;
         color: #000000 !important;
+        border: 1px solid #C9A961 !important;
     }
 </style>
 """, unsafe_allow_html=True)
