@@ -582,6 +582,34 @@ st.markdown("""
         font-size: 0.85rem;
         font-weight: 600;
     }
+    
+    /* ===== Global Inputs & Selects ===== */
+    .stTextInput input, .stNumberInput input, .stTextArea textarea, .stSelectbox > div > div, .stDateInput input {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 1px solid #C9A961 !important;
+    }
+    /* Selectbox dropdown items */
+    ul[data-testid="stSelectboxVirtualList"] li {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    
+    /* ===== Tables / Dataframes ===== */
+    [data-testid="stDataFrame"], [data-testid="stTable"] {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    [data-testid="stDataFrame"] div[role="row"], [data-testid="stDataFrame"] div[role="gridcell"] {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+    }
+    [data-testid="stDataFrame"] div[role="columnheader"] {
+        background-color: #faf8f5 !important;
+        color: #000000 !important;
+        border-bottom: 2px solid #C9A961 !important;
+        font-weight: bold !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
