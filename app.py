@@ -424,74 +424,143 @@ def generate_pdf(invoice_df, letterhead_bytes, grand_total, header_info):
 
 # --- Main App ---
 
-# Custom CSS for better UI
+# Custom CSS - Oasis Cotton Company Theme
 st.markdown("""
 <style>
-    /* Main header styling */
+    /* ===== Oasis Cotton Company Color Palette ===== */
+    :root {
+        --oasis-gold: #C9A961;
+        --oasis-dark: #1a1a2e;
+        --oasis-cream: #f5f0e8;
+        --oasis-accent: #D4AF37;
+    }
+    
+    /* Global background */
+    .stApp {
+        background-color: #faf8f5;
+    }
+    
+    /* ===== Light Sidebar ===== */
+    section[data-testid="stSidebar"] {
+        background: #f8f9fa !important;
+        border-right: 3px solid #C9A961;
+    }
+    section[data-testid="stSidebar"] * {
+        color: #1a1a2e !important;
+    }
+    section[data-testid="stSidebar"] .stTextInput input,
+    section[data-testid="stSidebar"] .stNumberInput input {
+        background-color: #ffffff;
+        color: #1a1a2e;
+        border: 1px solid #C9A961;
+    }
+    
+    /* ===== Main Header - Dark with Gold ===== */
     .main-header {
-        background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+        background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
         padding: 1.5rem 2rem;
-        border-radius: 10px;
+        border-radius: 12px;
         margin-bottom: 1.5rem;
-        color: white;
+        border-bottom: 4px solid #C9A961;
+        box-shadow: 0 4px 15px rgba(26, 26, 46, 0.3);
     }
     .main-header h1 {
         margin: 0;
-        font-size: 2rem;
+        font-size: 1.8rem;
+        color: #C9A961 !important;
+        font-weight: 700;
     }
     .main-header p {
         margin: 0.5rem 0 0 0;
         opacity: 0.9;
+        color: #f5f0e8 !important;
     }
     
-    /* Step indicator styling */
+    /* ===== Step Indicators - Gold Accent ===== */
     .step-box {
-        background: #f8f9fa;
-        border-left: 4px solid #2d5a87;
+        background: linear-gradient(135deg, #f5f0e8 0%, #fff 100%);
+        border-left: 4px solid #C9A961;
         padding: 0.8rem 1rem;
         margin-bottom: 1rem;
         border-radius: 0 8px 8px 0;
+        box-shadow: 0 2px 8px rgba(201, 169, 97, 0.15);
     }
     .step-number {
-        background: #2d5a87;
-        color: white;
+        background: linear-gradient(135deg, #C9A961 0%, #D4AF37 100%);
+        color: #1a1a2e;
         padding: 2px 10px;
         border-radius: 15px;
         font-weight: bold;
         margin-right: 8px;
     }
     
-    /* Info card styling */
+    /* ===== Info Cards ===== */
     .info-card {
-        background: linear-gradient(135deg, #e8f4f8 0%, #f0f7fa 100%);
-        border: 1px solid #bee5eb;
+        background: linear-gradient(135deg, #f5f0e8 0%, #fff 100%);
+        border: 1px solid #C9A961;
         padding: 1rem;
         border-radius: 8px;
         margin: 1rem 0;
     }
     
-    /* Quick tip styling */
+    /* ===== Quick Tips - Gold ===== */
     .quick-tip {
-        background: #fff3cd;
-        border: 1px solid #ffc107;
+        background: #fef9e7;
+        border: 1px solid #C9A961;
         padding: 0.7rem 1rem;
         border-radius: 8px;
         font-size: 0.9rem;
     }
     
-    /* Section divider */
-    .section-divider {
-        border-top: 2px solid #e9ecef;
-        margin: 1.5rem 0;
+    /* ===== Tabs - Gold Theme ===== */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 8px;
+    }
+    .stTabs [data-baseweb="tab-list"] button {
+        color: #1a1a2e !important;
+        background-color: #f5f0e8;
+        border-radius: 8px 8px 0 0;
+        padding: 10px 20px;
+    }
+    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
+        background-color: #C9A961 !important;
+        color: #1a1a2e !important;
+        font-weight: 600;
     }
     
-    /* Product count badge */
+    /* ===== Buttons - Gold Theme ===== */
+    .stButton > button[data-testid="baseButton-primary"] {
+        background: linear-gradient(135deg, #C9A961 0%, #D4AF37 100%);
+        color: #1a1a2e;
+        border: none;
+        font-weight: 600;
+    }
+    .stButton > button[data-testid="baseButton-primary"]:hover {
+        background: linear-gradient(135deg, #D4AF37 0%, #E5C158 100%);
+    }
+    
+    /* ===== Metrics - Oasis Theme ===== */
+    [data-testid="stMetricValue"] {
+        color: #C9A961 !important;
+        font-weight: 700;
+    }
+    
+    /* ===== Text Visibility ===== */
+    h1, h2, h3, h4, h5, h6 {
+        color: #1a1a2e !important;
+    }
+    .stMarkdown, p, span, label {
+        color: #1a1a2e;
+    }
+    
+    /* ===== Product Badge ===== */
     .product-badge {
-        background: #28a745;
-        color: white;
+        background: #C9A961;
+        color: #1a1a2e;
         padding: 5px 12px;
         border-radius: 20px;
         font-size: 0.85rem;
+        font-weight: 600;
     }
 </style>
 """, unsafe_allow_html=True)
