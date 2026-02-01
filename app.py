@@ -457,115 +457,126 @@ st.markdown("""
     
     /* ===== Main Header - Dark with Gold ===== */
     .main-header {
-        background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+        background: linear-gradient(135deg, #f5f0e8 0%, #ffffff 100%);
         padding: 1.5rem 2rem;
         border-radius: 12px;
         margin-bottom: 1.5rem;
-        border-bottom: 4px solid #C9A961;
-        box-shadow: 0 4px 15px rgba(26, 26, 46, 0.3);
+        border: 2px solid #C9A961;
+        border-left: 5px solid #C9A961;
+        box-shadow: 0 4px 15px rgba(201, 169, 97, 0.2);
     }
     .main-header h1 {
         margin: 0;
         font-size: 1.8rem;
-        color: #C9A961 !important;
+        color: #1a1a2e !important;
         font-weight: 700;
     }
     .main-header p {
         margin: 0.5rem 0 0 0;
-        opacity: 0.9;
-        color: #f5f0e8 !important;
+        color: #333333 !important;
     }
     
-    /* ===== Step Indicators - Gold Accent ===== */
+    /* ===== Step Indicators - White with Gold Border ===== */
     .step-box {
-        background: linear-gradient(135deg, #f5f0e8 0%, #fff 100%);
-        border-left: 4px solid #C9A961;
+        background: #ffffff;
+        border: 1px solid #C9A961;
+        border-left: 5px solid #C9A961;
         padding: 0.8rem 1rem;
         margin-bottom: 1rem;
-        border-radius: 0 8px 8px 0;
-        box-shadow: 0 2px 8px rgba(201, 169, 97, 0.15);
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(201, 169, 97, 0.1);
     }
     .step-number {
-        background: linear-gradient(135deg, #C9A961 0%, #D4AF37 100%);
-        color: #1a1a2e;
+        background: #ffffff;
+        color: #000000;
+        border: 2px solid #C9A961;
         padding: 2px 10px;
-        border-radius: 15px;
+        border-radius: 50%;
         font-weight: bold;
         margin-right: 8px;
+        display: inline-block;
     }
     
     /* ===== Info Cards ===== */
     .info-card {
-        background: linear-gradient(135deg, #f5f0e8 0%, #fff 100%);
+        background: #ffffff;
         border: 1px solid #C9A961;
         padding: 1rem;
         border-radius: 8px;
         margin: 1rem 0;
     }
     
-    /* ===== Quick Tips - Gold ===== */
+    /* ===== Quick Tips ===== */
     .quick-tip {
-        background: #fef9e7;
+        background: #ffffff;
         border: 1px solid #C9A961;
         padding: 0.7rem 1rem;
         border-radius: 8px;
         font-size: 0.9rem;
+        color: #000000;
     }
     
-    /* ===== Tabs - Gold Theme ===== */
+    /* ===== Tabs - White with Gold Border ===== */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
     }
     .stTabs [data-baseweb="tab-list"] button {
-        color: #1a1a2e !important;
-        background-color: #f5f0e8;
+        color: #000000 !important;
+        background-color: #ffffff;
+        border: 1px solid #e0e0e0;
         border-radius: 8px 8px 0 0;
         padding: 10px 20px;
     }
     .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-        background-color: #C9A961 !important;
-        color: #1a1a2e !important;
-        font-weight: 600;
+        background-color: #ffffff !important;
+        color: #000000 !important;
+        border: 2px solid #C9A961 !important;
+        border-bottom: none !important;
+        font-weight: 700;
     }
     
-    /* ===== Buttons - Gold Theme ===== */
+    /* ===== Buttons - White with Gold Border ===== */
     .stButton > button[data-testid="baseButton-primary"] {
-        background: linear-gradient(135deg, #C9A961 0%, #D4AF37 100%);
-        color: #1a1a2e;
-        border: none;
-        font-weight: 600;
+        background: #ffffff;
+        color: #000000;
+        border: 2px solid #C9A961;
+        font-weight: 700;
     }
     .stButton > button[data-testid="baseButton-primary"]:hover {
-        background: linear-gradient(135deg, #D4AF37 0%, #E5C158 100%);
+        background: #fdfbf7;
+        border-color: #D4AF37;
+        color: #000000;
+        box-shadow: 0 2px 5px rgba(201, 169, 97, 0.2);
     }
     
-    /* ===== Metrics - Oasis Theme ===== */
+    /* ===== Metrics ===== */
     [data-testid="stMetricValue"] {
-        color: #C9A961 !important;
+        color: #000000 !important;
         font-weight: 700;
     }
     
     /* ===== Text Visibility - ENSURE ALL TEXT IS VISIBLE ===== */
     h1, h2, h3, h4, h5, h6,
     .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
-        color: #1a1a2e !important;
+        color: #000000 !important;
     }
     .stMarkdown, .stMarkdown p, p, span, label {
-        color: #1a1a2e !important;
+        color: #000000 !important;
     }
     /* Tab panel text */
     .stTabs [data-baseweb="tab-panel"] {
-        color: #1a1a2e !important;
+        color: #000000 !important;
     }
     /* Expander text */
     .stExpander summary, .stExpander p {
-        color: #1a1a2e !important;
+        color: #000000 !important;
     }
     
     /* ===== Product Badge ===== */
     .product-badge {
-        background: #C9A961;
-        color: #1a1a2e;
+        background: #ffffff;
+        color: #000000;
+        border: 1px solid #C9A961;
         padding: 5px 12px;
         border-radius: 20px;
         font-size: 0.85rem;
