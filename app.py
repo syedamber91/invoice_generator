@@ -24,7 +24,7 @@ if not os.path.exists(FONT_PATH):
 if not os.path.exists(FONT_PATH):
     FONT_PATH = "Arial.ttf" # Fallback to local if user provides it
 
-st.set_page_config(page_title="Dynamic Quotation Builder", layout="wide")
+st.set_page_config(page_title="Dynamic Quotation Builder", layout="wide", page_icon="📄")
 
 # --- Database Functions ---
 def init_db():
@@ -423,256 +423,484 @@ def generate_pdf(invoice_df, letterhead_bytes, grand_total, header_info):
     return None
 
 # --- Main App ---
-st.title("📄 Professional Quotation Builder")
+
+# Custom CSS for better UI
+st.markdown("""
+<style>
+    /* Main header styling */
+    .main-header {
+        background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+        padding: 1.5rem 2rem;
+        border-radius: 10px;
+        margin-bottom: 1.5rem;
+        color: white;
+    }
+    .main-header h1 {
+        margin: 0;
+        font-size: 2rem;
+    }
+    .main-header p {
+        margin: 0.5rem 0 0 0;
+        opacity: 0.9;
+    }
+    
+    /* Step indicator styling */
+    .step-box {
+        background: #f8f9fa;
+        border-left: 4px solid #2d5a87;
+        padding: 0.8rem 1rem;
+        margin-bottom: 1rem;
+        border-radius: 0 8px 8px 0;
+    }
+    .step-number {
+        background: #2d5a87;
+        color: white;
+        padding: 2px 10px;
+        border-radius: 15px;
+        font-weight: bold;
+        margin-right: 8px;
+    }
+    
+    /* Info card styling */
+    .info-card {
+        background: linear-gradient(135deg, #e8f4f8 0%, #f0f7fa 100%);
+        border: 1px solid #bee5eb;
+        padding: 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+    
+    /* Quick tip styling */
+    .quick-tip {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        padding: 0.7rem 1rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+    
+    /* Section divider */
+    .section-divider {
+        border-top: 2px solid #e9ecef;
+        margin: 1.5rem 0;
+    }
+    
+    /* Product count badge */
+    .product-badge {
+        background: #28a745;
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Main Header
+st.markdown("""
+<div class="main-header">
+    <h1>📄 Professional Quotation Builder</h1>
+    <p>Create professional quotations with automatic VAT calculation and PDF generation</p>
+</div>
+""", unsafe_allow_html=True)
 
 # Initialize DB
 init_db()
 
-# Tabs
-tab1, tab2 = st.tabs(["📝 Quotation Generator", "💾 Manage Data"])
+# Load product count for display
+product_count = len(load_products_from_db())
+
+# Tabs with better labels
+tab1, tab2 = st.tabs(["📝 Create Quotation", "⚙️ Manage Products"])
 
 with tab1:
-    st.header("Create Quotation")
+    # Quick status bar
+    col_status1, col_status2, col_status3 = st.columns(3)
+    with col_status1:
+        st.metric("📦 Products Available", product_count)
+    with col_status2:
+        st.metric("💰 VAT Rate", "15%")
+    with col_status3:
+        st.metric("💵 Currency", "SAR")
     
-    # 1. Invoice Details (now Quotation Details)
-    st.subheader("Quotation Details")
+    st.divider()
+    
+    # Step 1: Customer Details
+    st.markdown("""
+    <div class="step-box">
+        <span class="step-number">1</span>
+        <strong>Enter Customer & Quotation Details</strong>
+    </div>
+    """, unsafe_allow_html=True)
+    
     col1, col2 = st.columns(2)
     with col1:
-        date = st.date_input("Date")
-        bill_no = st.text_input("Quotation Number", value="1001")
-        customer_name = st.text_input("Customer Name")
+        date = st.date_input("📅 Quotation Date", help="Date of the quotation")
+        bill_no = st.text_input("🔢 Quotation Number", value="1001", help="Unique quotation reference number")
+        customer_name = st.text_input("👤 Customer Name", placeholder="Enter customer name...", help="Name of the customer")
     with col2:
-        customer_address = st.text_input("Customer Address")
-        customer_vat = st.text_input("Customer VAT No.")
-        payment_terms = st.text_input("Payment Method", value="Cash / Credit")
+        customer_address = st.text_input("📍 Customer Address", placeholder="Enter address...", help="Customer's address")
+        customer_vat = st.text_input("🏢 Customer VAT No.", placeholder="e.g., 300000000000003", help="Customer's VAT registration number")
+        payment_terms = st.text_input("💳 Payment Method", value="Cash / Credit", help="Payment terms or method")
 
     st.divider()
 
-    # 2. Select Letterhead
-    letterhead_file = st.file_uploader("Upload Vendor Letterhead (PDF)", type=["pdf"], key="lh_uploader")
+    # Step 2: Upload Letterhead
+    st.markdown("""
+    <div class="step-box">
+        <span class="step-number">2</span>
+        <strong>Upload Your Company Letterhead</strong>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # 3. Product Selection
-    st.subheader("Select Products")
+    letterhead_file = st.file_uploader(
+        "📎 Upload Letterhead PDF", 
+        type=["pdf"], 
+        key="lh_uploader",
+        help="Upload your company's letterhead PDF. The quotation will be generated on top of this."
+    )
+    
+    if not letterhead_file:
+        st.info("💡 **Tip:** Upload your company letterhead to generate professional branded quotations.")
+    else:
+        st.success("✅ Letterhead uploaded successfully!")
+    
+    st.divider()
+    
+    # Step 3: Product Selection
+    st.markdown("""
+    <div class="step-box">
+        <span class="step-number">3</span>
+        <strong>Select Products & Set Quantities</strong>
+    </div>
+    """, unsafe_allow_html=True)
     
     db_products = load_products_from_db()
     
     if db_products.empty:
-        st.warning("No products found in database. Go to 'Manage Data' tab to upload a price list.")
+        st.warning("⚠️ **No products in database!** Go to the '⚙️ Manage Products' tab to add products.")
+        st.markdown("""
+        <div class="info-card">
+            <strong>🚀 Quick Start Guide:</strong><br>
+            1. Click on the <strong>"⚙️ Manage Products"</strong> tab above<br>
+            2. Add products manually OR import from Excel/PDF<br>
+            3. Come back here to create quotations
+        </div>
+        """, unsafe_allow_html=True)
     else:
+        st.caption(f"📦 **{len(db_products)} products available** — Set quantity > 0 to add items to your quotation")
+        
         if 'Quantity' not in db_products.columns:
             db_products['Quantity'] = 0
             
         edited_df = st.data_editor(
             db_products,
             column_config={
-                "Product": st.column_config.TextColumn("Product Name", disabled=True),
-                "Price": st.column_config.NumberColumn("Unit Price", format="SAR %.2f", disabled=True),
-                "Quantity": st.column_config.NumberColumn("Quantity", min_value=0, step=1, format="%d")
+                "Product": st.column_config.TextColumn("📦 Product Name", disabled=True, width="large"),
+                "Price": st.column_config.NumberColumn("💰 Unit Price (SAR)", format="%.2f", disabled=True),
+                "Quantity": st.column_config.NumberColumn("🔢 Qty", min_value=0, step=1, format="%d", width="small")
             },
             hide_index=True,
             use_container_width=True,
-            num_rows="fixed" 
+            num_rows="fixed",
+            height=400
         )
         
         selected_items = edited_df[edited_df['Quantity'] > 0].copy()
         
         if not selected_items.empty:
             st.divider()
-            st.subheader("Quotation Preview")
             
+            # Step 4: Review & Generate
+            st.markdown("""
+            <div class="step-box">
+                <span class="step-number">4</span>
+                <strong>Review & Generate Quotation</strong>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Calculate totals
             selected_items['Subtotal'] = selected_items['Price'] * selected_items['Quantity']
             selected_items['Tax (15%)'] = selected_items['Subtotal'] * 0.15
             selected_items['Total'] = selected_items['Subtotal'] + selected_items['Tax (15%)']
             grand_total = selected_items['Total'].sum()
+            subtotal_sum = selected_items['Subtotal'].sum()
+            tax_sum = selected_items['Tax (15%)'].sum()
             
-            st.dataframe(selected_items, use_container_width=True)
-            st.metric("Grand Total", f"SAR {grand_total:,.2f}")
+            # Summary metrics
+            st.markdown("### 📋 Quotation Summary")
             
-            if letterhead_file:
-                if st.button("Generate PDF Quotation", type="primary"):
-                    # Collect header info
-                    header_info = {
-                        "date": str(date), # Changed from inv_date
-                        "bill_no": bill_no,
-                        "customer": customer_name,
-                        "address": customer_address,
-                        "vat_no": customer_vat,
-                        "terms": payment_terms # Changed from payment_method
+            sum_col1, sum_col2, sum_col3, sum_col4 = st.columns(4)
+            with sum_col1:
+                st.metric("📦 Items", len(selected_items))
+            with sum_col2:
+                st.metric("💵 Subtotal", f"SAR {subtotal_sum:,.2f}")
+            with sum_col3:
+                st.metric("🏛️ VAT (15%)", f"SAR {tax_sum:,.2f}")
+            with sum_col4:
+                st.metric("💰 Grand Total", f"SAR {grand_total:,.2f}", delta=None)
+            
+            # Detailed preview
+            with st.expander("📊 View Detailed Breakdown", expanded=True):
+                st.dataframe(
+                    selected_items[['Product', 'Price', 'Quantity', 'Subtotal', 'Tax (15%)', 'Total']],
+                    use_container_width=True,
+                    column_config={
+                        "Product": st.column_config.TextColumn("Product"),
+                        "Price": st.column_config.NumberColumn("Unit Price", format="SAR %.2f"),
+                        "Quantity": st.column_config.NumberColumn("Qty", format="%d"),
+                        "Subtotal": st.column_config.NumberColumn("Subtotal", format="SAR %.2f"),
+                        "Tax (15%)": st.column_config.NumberColumn("VAT", format="SAR %.2f"),
+                        "Total": st.column_config.NumberColumn("Total", format="SAR %.2f"),
                     }
-                    
-                    pdf_bytes = generate_pdf(selected_items, letterhead_file, grand_total, header_info)
-                    
-                    if pdf_bytes:
-                        st.success("✅ PDF Generated!")
-                        st.download_button(
-                            label="Download PDF",
-                            data=pdf_bytes,
-                            file_name=f"Quotation_{bill_no}.pdf",
-                            mime="application/pdf"
-                        )
-                    else:
-                        st.error("Failed to generate PDF.")
+                )
+            
+            st.divider()
+            
+            # Generate button
+            if letterhead_file:
+                gen_col1, gen_col2 = st.columns([1, 3])
+                with gen_col1:
+                    if st.button("🚀 Generate PDF Quotation", type="primary", use_container_width=True):
+                        with st.spinner("Generating your quotation..."):
+                            header_info = {
+                                "date": str(date),
+                                "bill_no": bill_no,
+                                "customer": customer_name,
+                                "address": customer_address,
+                                "vat_no": customer_vat,
+                                "terms": payment_terms
+                            }
+                            
+                            pdf_bytes = generate_pdf(selected_items, letterhead_file, grand_total, header_info)
+                            
+                            if pdf_bytes:
+                                st.success("✅ PDF Generated Successfully!")
+                                st.download_button(
+                                    label="📥 Download PDF Quotation",
+                                    data=pdf_bytes,
+                                    file_name=f"Quotation_{bill_no}.pdf",
+                                    mime="application/pdf",
+                                    use_container_width=True
+                                )
+                            else:
+                                st.error("❌ Failed to generate PDF. Please check your inputs.")
             else:
-                st.info("Upload a Letterhead PDF above to enable generation.")
+                st.warning("⚠️ **Upload a letterhead PDF** (Step 2) to enable PDF generation.")
         else:
-            st.info("Set Quantity > 0 for at least one item to see the preview.")
+            st.markdown("""
+            <div class="quick-tip">
+                💡 <strong>How to add items:</strong> Set the <strong>Qty</strong> column to any number greater than 0 for products you want to include in your quotation.
+            </div>
+            """, unsafe_allow_html=True)
 
 
 with tab2:
-    st.header("Data Management")
+    st.markdown("### ⚙️ Product & Price Management")
+    st.caption("Add, edit, or import products for your quotations")
     
-    # Sub-tabs for different management options
-    manage_tab1, manage_tab2 = st.tabs(["📊 Edit Products", "📤 Import from File"])
+    # Current status
+    current_df = load_products_from_db()
     
-    with manage_tab1:
-        st.subheader("Product & Price Editor")
-        st.write("Edit product names and prices directly, add new products, or delete existing ones.")
+    st.markdown(f"""
+    <div class="info-card">
+        <strong>📊 Database Status:</strong> Currently storing <strong>{len(current_df)}</strong> products
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # --- Add New Product Section ---
+    st.markdown("#### ➕ Add New Product")
+    
+    # Use a container for better alignment
+    add_col1, add_col2, add_col3 = st.columns([3, 2, 1], gap="medium")
+    with add_col1:
+        new_product_name = st.text_input(
+            "Product Name", 
+            key="new_product_name", 
+            placeholder="Enter product name (e.g., Cotton Roll 100m)",
+            help="Enter the name of the product"
+        )
+    with add_col2:
+        new_product_price = st.number_input(
+            "Price (SAR)", 
+            min_value=0.0, 
+            step=0.50, 
+            format="%.2f", 
+            key="new_product_price",
+            help="Unit price in SAR"
+        )
+    with add_col3:
+        # Add some vertical spacing to align the button with the inputs
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("➕ Add Product", key="add_product_btn", use_container_width=True, type="primary"):
+            if new_product_name.strip():
+                new_row = pd.DataFrame([{'Product': new_product_name.strip(), 'Price': new_product_price}])
+                success, msg = save_products_to_db(new_row)
+                if success:
+                    st.success(f"✅ Added '{new_product_name}' at SAR {new_product_price:.2f}")
+                    st.rerun()
+                else:
+                    st.error(f"❌ {msg}")
+            else:
+                st.warning("⚠️ Please enter a product name.")
+    
+    st.divider()
+    
+    # --- Edit Existing Products ---
+    st.markdown("#### ✏️ Edit Existing Products")
+    
+    if not current_df.empty:
+        st.markdown("""
+        <div class="quick-tip">
+            💡 <strong>How to edit:</strong> Double-click any cell to edit. Check the 🗑️ box to mark for deletion. Click <strong>Save All Changes</strong> when done.
+        </div>
+        """, unsafe_allow_html=True)
         
-        current_df = load_products_from_db()
+        # Add Delete column
+        edit_df = current_df.copy()
+        edit_df.insert(0, 'Delete', False)
         
-        # --- Add New Product Section ---
-        st.markdown("##### ➕ Add New Product")
-        add_col1, add_col2, add_col3 = st.columns([3, 2, 1])
-        with add_col1:
-            new_product_name = st.text_input("Product Name", key="new_product_name", placeholder="Enter product name...")
-        with add_col2:
-            new_product_price = st.number_input("Price (SAR)", min_value=0.0, step=0.01, format="%.2f", key="new_product_price")
-        with add_col3:
-            st.write("") # Spacer for alignment
-            if st.button("➕ Add", key="add_product_btn", use_container_width=True):
-                if new_product_name.strip():
-                    # Add to database
-                    new_row = pd.DataFrame([{'Product': new_product_name.strip(), 'Price': new_product_price}])
-                    success, msg = save_products_to_db(new_row)
+        edited_products = st.data_editor(
+            edit_df,
+            column_config={
+                "Delete": st.column_config.CheckboxColumn(
+                    "🗑️",
+                    help="Check to delete this product",
+                    default=False,
+                    width="small"
+                ),
+                "Product": st.column_config.TextColumn(
+                    "📦 Product Name",
+                    help="Product name (must be unique)",
+                    max_chars=200,
+                    width="large"
+                ),
+                "Price": st.column_config.NumberColumn(
+                    "💰 Price (SAR)",
+                    help="Unit price in SAR",
+                    min_value=0.0,
+                    format="%.2f",
+                ),
+            },
+            hide_index=True,
+            use_container_width=True,
+            num_rows="fixed",
+            key="product_editor",
+            height=400
+        )
+        
+        # Count marked for deletion
+        delete_count = edited_products['Delete'].sum()
+        
+        # Action buttons
+        btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 2])
+        with btn_col1:
+            if st.button("💾 Save All Changes", type="primary", use_container_width=True):
+                to_delete = edited_products[edited_products['Delete'] == True]['Product'].tolist()
+                to_update = edited_products[edited_products['Delete'] == False][['Product', 'Price']]
+                
+                if to_delete:
+                    conn = init_db()
+                    c = conn.cursor()
+                    for product_name in to_delete:
+                        c.execute("DELETE FROM products WHERE name = ?", (product_name,))
+                    conn.commit()
+                    conn.close()
+                
+                if not to_update.empty:
+                    clear_db()
+                    success, msg = save_products_to_db(to_update)
                     if success:
-                        st.success(f"Added '{new_product_name}' at SAR {new_product_price:.2f}")
+                        delete_msg = f" Deleted {len(to_delete)} product(s)." if to_delete else ""
+                        st.success(f"✅ Saved {len(to_update)} products.{delete_msg}")
                         st.rerun()
                     else:
-                        st.error(msg)
-                else:
-                    st.warning("Please enter a product name.")
+                        st.error(f"❌ {msg}")
+                elif to_delete:
+                    st.success(f"✅ Deleted {len(to_delete)} product(s).")
+                    st.rerun()
         
-        st.divider()
+        with btn_col2:
+            if delete_count > 0:
+                st.warning(f"🗑️ {int(delete_count)} marked for deletion")
         
-        # --- Edit Existing Products ---
-        st.markdown("##### ✏️ Edit Existing Products")
-        st.caption("Double-click any cell to edit. Changes are saved when you click 'Save All Changes'.")
+        with btn_col3:
+            st.caption(f"📦 **{len(current_df)}** products in database")
+    else:
+        st.info("📭 No products in database. Add your first product above or import from a file.")
+    
+    st.divider()
+    
+    # --- Import from File (Collapsible) ---
+    with st.expander("📤 Import Products from File (Excel/PDF)", expanded=False):
+        st.caption("Bulk import products from Excel or PDF files")
         
-        if not current_df.empty:
-            # Add an ID column for tracking deletions (hidden from user display but used internally)
-            edit_df = current_df.copy()
-            edit_df.insert(0, 'Delete', False)  # Checkbox for deletion
-            
-            edited_products = st.data_editor(
-                edit_df,
-                column_config={
-                    "Delete": st.column_config.CheckboxColumn(
-                        "🗑️ Delete",
-                        help="Check to delete this product",
-                        default=False,
-                    ),
-                    "Product": st.column_config.TextColumn(
-                        "Product Name",
-                        help="Product name (must be unique)",
-                        max_chars=200,
-                    ),
-                    "Price": st.column_config.NumberColumn(
-                        "Price (SAR)",
-                        help="Unit price in SAR",
-                        min_value=0.0,
-                        format="SAR %.2f",
-                    ),
-                },
-                hide_index=True,
-                use_container_width=True,
-                num_rows="fixed",
-                key="product_editor"
+        st.markdown("""
+        <div class="info-card">
+            <strong>📋 File Requirements:</strong><br>
+            • <strong>Excel:</strong> Must have columns named "Product" and "Price"<br>
+            • <strong>PDF:</strong> Must follow the Item_Pricing.pdf format
+        </div>
+        """, unsafe_allow_html=True)
+        
+        upload_type = st.radio(
+            "Select file type:", 
+            ["📊 Excel (.xlsx)", "📄 PDF Price List"],
+            key="upload_format",
+            horizontal=True
+        )
+        
+        if "Excel" in upload_type:
+            uploaded_master = st.file_uploader(
+                "Upload Excel File", 
+                type=["xlsx"], 
+                key="excel_uploader",
+                help="Excel file with 'Product' and 'Price' columns"
             )
-            
-            # Action buttons
-            btn_col1, btn_col2 = st.columns([1, 4])
-            with btn_col1:
-                if st.button("💾 Save All Changes", type="primary", use_container_width=True):
-                    # Handle deletions first
-                    to_delete = edited_products[edited_products['Delete'] == True]['Product'].tolist()
-                    to_update = edited_products[edited_products['Delete'] == False][['Product', 'Price']]
-                    
-                    if to_delete:
-                        # Delete marked products
-                        conn = init_db()
-                        c = conn.cursor()
-                        for product_name in to_delete:
-                            c.execute("DELETE FROM products WHERE name = ?", (product_name,))
-                        conn.commit()
-                        conn.close()
-                    
-                    # Update/save remaining products
-                    if not to_update.empty:
-                        # Clear and re-save to handle any name changes
-                        clear_db()
-                        success, msg = save_products_to_db(to_update)
-                        if success:
-                            delete_msg = f" Deleted {len(to_delete)} product(s)." if to_delete else ""
-                            st.success(f"✅ Saved {len(to_update)} products.{delete_msg}")
-                            st.rerun()
+            if uploaded_master:
+                if st.button("📥 Import from Excel", type="primary"):
+                    try:
+                        with st.spinner("Importing products..."):
+                            master_df = pd.read_excel(uploaded_master)
+                            success, msg = save_products_to_db(master_df)
+                            if success:
+                                st.success(f"✅ {msg}")
+                                st.rerun()
+                            else:
+                                st.error(f"❌ {msg}")
+                    except Exception as e:
+                        st.error(f"❌ Error reading file: {e}")
+                        
+        else:  # PDF
+            uploaded_pdf = st.file_uploader(
+                "Upload PDF Price List", 
+                type=["pdf"], 
+                key="pdf_uploader",
+                help="PDF file in Item_Pricing.pdf format"
+            )
+            if uploaded_pdf:
+                if st.button("📥 Import from PDF", type="primary"):
+                    with st.spinner("Parsing PDF..."):
+                        df, msg = parse_pricing_pdf_stream(uploaded_pdf)
+                        if df is not None:
+                            success, save_msg = save_products_to_db(df)
+                            if success:
+                                st.success(f"✅ Parsed {len(df)} items. {save_msg}")
+                                st.rerun()
+                            else:
+                                st.error(f"❌ {save_msg}")
                         else:
-                            st.error(msg)
-                    elif to_delete:
-                        st.success(f"✅ Deleted {len(to_delete)} product(s).")
-                        st.rerun()
-            
-            with btn_col2:
-                st.caption(f"📦 Total Products: **{len(current_df)}**")
-        else:
-            st.info("No products in database. Add your first product above or import from a file.")
-        
-        st.divider()
-        
-        # --- Danger Zone ---
-        with st.expander("⚠️ Danger Zone"):
-            st.warning("This action cannot be undone!")
-            if st.button("🗑️ Clear Entire Database", type="secondary"):
-                clear_db()
-                st.success("Database cleared.")
-                st.rerun()
+                            st.error(f"❌ {msg}")
     
-    with manage_tab2:
-        st.subheader("Import from File")
-        st.write("Upload a Master Price List to update the database.")
-        
-        upload_type = st.radio("Upload Format", ["Excel (.xlsx)", "PDF Price List (Item_Pricing.pdf)"], key="upload_format")
-        
-        if upload_type == "Excel (.xlsx)":
-            uploaded_master = st.file_uploader("Upload Excel", type=["xlsx"], key="excel_uploader")
-            if uploaded_master and st.button("Update from Excel"):
-                try:
-                    master_df = pd.read_excel(uploaded_master)
-                    success, msg = save_products_to_db(master_df)
-                    if success:
-                        st.success(msg)
-                        st.rerun()
-                    else:
-                        st.error(msg)
-                except Exception as e:
-                    st.error(f"Error reading file: {e}")
-                    
-        else: # PDF
-            uploaded_pdf = st.file_uploader("Upload Price List PDF", type=["pdf"], key="pdf_uploader")
-            if uploaded_pdf and st.button("Update from PDF"):
-                df, msg = parse_pricing_pdf_stream(uploaded_pdf)
-                if df is not None:
-                    success, save_msg = save_products_to_db(df)
-                    if success:
-                        st.success(f"Parsed {len(df)} items. {save_msg}")
-                        st.rerun()
-                    else:
-                        st.error(save_msg)
-                else:
-                    st.error(msg)
-        
-        st.divider()
-        st.subheader("Current Database Status")
-        status_df = load_products_from_db()
-        st.write(f"Total Products: {len(status_df)}")
-        if not status_df.empty:
-            st.dataframe(status_df, use_container_width=True)
+    st.divider()
+    
+    # --- Danger Zone ---
+    with st.expander("⚠️ Danger Zone - Clear Database", expanded=False):
+        st.error("**Warning:** This will permanently delete ALL products from the database!")
+        col_danger1, col_danger2 = st.columns([1, 3])
+        with col_danger1:
+            if st.button("🗑️ Clear ALL Products", type="secondary", use_container_width=True):
+                clear_db()
+                st.success("✅ Database cleared.")
+                st.rerun()
+
