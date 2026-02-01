@@ -588,7 +588,7 @@ st.markdown("""
 # Main Header
 st.markdown("""
 <div class="main-header">
-    <h1>📄 Professional Quotation Builder</h1>
+    <h1>🏨 Oasis Cotton Company - Quotation Builder</h1>
     <p>Create professional quotations with automatic VAT calculation and PDF generation</p>
 </div>
 """, unsafe_allow_html=True)
