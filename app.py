@@ -596,8 +596,7 @@ st.markdown("""
     }
     
     /* ===== Tables / Dataframes & Data Editors ===== */
-    /* ===== Tables / Dataframes & Data Editors ===== */
-    [data-testid="stDataFrame"], [data-testid="stTable"], .stDataFrame, .stDataEditor {
+    [data-testid="stDataFrame"], [data-testid="stTable"], [data-testid="stDataEditor"], .stDataFrame, .stDataEditor {
         background-color: #ffffff !important;
         color: #000000 !important;
         border: 1px solid #C9A961 !important;
