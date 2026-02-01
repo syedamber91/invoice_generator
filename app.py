@@ -961,21 +961,8 @@ else:
     products_df = load_products_from_db()
     
     # Quick status
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("📦 Total Products", len(products_df))
-    with col2:
-        if not products_df.empty:
-            avg_price = products_df['Price'].mean()
-            st.metric("💰 Average Price", f"SAR {avg_price:,.2f}")
-        else:
-            st.metric("💰 Average Price", "N/A")
-    with col3:
-        if not products_df.empty:
-            total_value = products_df['Price'].sum()
-            st.metric("📊 Total Catalog Value", f"SAR {total_value:,.2f}")
-        else:
-            st.metric("📊 Total Catalog Value", "N/A")
+    # Quick status
+    st.metric("📦 Total Products", len(products_df))
     
     st.divider()
     
