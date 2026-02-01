@@ -626,10 +626,31 @@ st.markdown("""
         border-bottom: 1px solid #e0d2b4 !important;
     }
     /* Ensure glide data grid elements are white */
+    /* Ensure glide data grid elements are white */
     .glide-data-grid {
         background-color: #ffffff !important;
         color: #000000 !important;
         border: 1px solid #C9A961 !important;
+    }
+    
+    /* ===== File Uploader ===== */
+    [data-testid="stFileUploader"] {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    [data-testid="stFileUploader"] section {
+        background-color: #fdfbf7 !important; /* Very light cream */
+        border: 1px dashed #C9A961 !important;
+        color: #000000 !important;
+    }
+    [data-testid="stFileUploader"] section:hover {
+        background-color: #fff9e6 !important; /* Slightly darker cream on hover */
+        border-color: #D4AF37 !important;
+    }
+    [data-testid="stFileUploader"] span, 
+    [data-testid="stFileUploader"] small, 
+    [data-testid="stFileUploader"] p {
+        color: #000000 !important;
     }
 </style>
 """, unsafe_allow_html=True)
