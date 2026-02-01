@@ -595,20 +595,34 @@ st.markdown("""
         color: #000000 !important;
     }
     
-    /* ===== Tables / Dataframes ===== */
-    [data-testid="stDataFrame"], [data-testid="stTable"] {
+    /* ===== Tables / Dataframes & Data Editors ===== */
+    [data-testid="stDataFrame"], [data-testid="stTable"], .stDataFrame, .stDataEditor {
         background-color: #ffffff !important;
         color: #000000 !important;
     }
-    [data-testid="stDataFrame"] div[role="row"], [data-testid="stDataFrame"] div[role="gridcell"] {
-        color: #000000 !important;
-        background-color: #ffffff !important;
-    }
-    [data-testid="stDataFrame"] div[role="columnheader"] {
-        background-color: #faf8f5 !important;
+    /* Header cells */
+    [data-testid="stDataFrame"] div[role="columnheader"],
+    div[data-testid="stDataFrame"] div[class*="header"] {
+        background-color: #fdfbf7 !important;
         color: #000000 !important;
         border-bottom: 2px solid #C9A961 !important;
-        font-weight: bold !important;
+        font-weight: 700 !important;
+    }
+    /* Data cells */
+    [data-testid="stDataFrame"] div[role="gridcell"],
+    div[data-testid="stDataFrame"] div[class*="cell"] {
+        color: #000000 !important;
+        background-color: #ffffff !important;
+    }
+    /* Row styling */
+    [data-testid="stDataFrame"] div[role="row"] {
+        background-color: #ffffff !important;
+        color: #000000 !important;
+    }
+    /* Ensure glide data grid elements are white */
+    .glide-data-grid {
+        background-color: #ffffff !important;
+        color: #000000 !important;
     }
 </style>
 """, unsafe_allow_html=True)
