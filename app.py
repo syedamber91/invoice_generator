@@ -545,12 +545,21 @@ st.markdown("""
         font-weight: 700;
     }
     
-    /* ===== Text Visibility ===== */
-    h1, h2, h3, h4, h5, h6 {
+    /* ===== Text Visibility - ENSURE ALL TEXT IS VISIBLE ===== */
+    h1, h2, h3, h4, h5, h6,
+    .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
         color: #1a1a2e !important;
     }
-    .stMarkdown, p, span, label {
-        color: #1a1a2e;
+    .stMarkdown, .stMarkdown p, p, span, label {
+        color: #1a1a2e !important;
+    }
+    /* Tab panel text */
+    .stTabs [data-baseweb="tab-panel"] {
+        color: #1a1a2e !important;
+    }
+    /* Expander text */
+    .stExpander summary, .stExpander p {
+        color: #1a1a2e !important;
     }
     
     /* ===== Product Badge ===== */
