@@ -24,7 +24,7 @@ if not os.path.exists(FONT_PATH):
 if not os.path.exists(FONT_PATH):
     FONT_PATH = "Arial.ttf" # Fallback to local if user provides it
 
-st.set_page_config(page_title="Oasis Cotton Company - Quotation Builder", layout="wide", page_icon="🏨")
+st.set_page_config(page_title="Dynamic Quotation Builder", layout="wide", page_icon="📄")
 
 # --- Database Functions ---
 def init_db():
@@ -424,341 +424,378 @@ def generate_pdf(invoice_df, letterhead_bytes, grand_total, header_info):
 
 # --- Main App ---
 
-# Custom CSS for better UI - Oasis Cotton Company Theme
+# Custom CSS for better UI
 st.markdown("""
 <style>
-    /* ===== Cross-Browser Normalization ===== */
-    *, *::before, *::after {
-        -webkit-box-sizing: border-box;
-        -moz-box-sizing: border-box;
-        box-sizing: border-box;
-    }
-    
-    /* Normalize font rendering across browsers */
-    body, input, button, select, textarea {
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        text-rendering: optimizeLegibility;
-    }
-    
-    /* Safari input/button appearance fix */
-    input, button, select, textarea {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-    }
-    
-    /* ===== Oasis Cotton Company Color Palette ===== */
-    :root {
-        --oasis-gold: #C9A961;
-        --oasis-dark: #1a1a2e;
-        --oasis-cream: #f5f0e8;
-        --oasis-brown: #8B7355;
-        --oasis-accent: #D4AF37;
-    }
-    
-    /* ===== Global Streamlit Overrides ===== */
-    .stApp {
-        background-color: #faf8f5;
-    }
-    
-    /* Sidebar styling */
-    section[data-testid="stSidebar"] {
-        background: -webkit-linear-gradient(top, #1a1a2e 0%, #2d2d44 100%);
-        background: -moz-linear-gradient(top, #1a1a2e 0%, #2d2d44 100%);
-        background: linear-gradient(180deg, #1a1a2e 0%, #2d2d44 100%);
-        border-right: 3px solid #C9A961;
-    }
-    section[data-testid="stSidebar"] .stMarkdown {
-        color: #f5f0e8;
-    }
-    section[data-testid="stSidebar"] label {
-        color: #C9A961 !important;
-    }
-    section[data-testid="stSidebar"] .stTextInput input,
-    section[data-testid="stSidebar"] .stNumberInput input {
-        background-color: #2d2d44;
-        color: #f5f0e8;
-        border: 1px solid #C9A961;
-    }
-    section[data-testid="stSidebar"] .stSelectbox > div > div {
-        background-color: #2d2d44;
-        color: #f5f0e8;
-    }
-    
-    /* Main header styling - Elegant dark with gold accent */
+    /* Main header styling */
     .main-header {
-        background: -webkit-linear-gradient(315deg, #1a1a2e 0%, #2d2d44 100%);
-        background: -moz-linear-gradient(315deg, #1a1a2e 0%, #2d2d44 100%);
-        background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
-        padding: 1.2rem 1.5rem;
-        -webkit-border-radius: 12px;
-        -moz-border-radius: 12px;
-        border-radius: 12px;
+        background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+        padding: 1.5rem 2rem;
+        border-radius: 10px;
         margin-bottom: 1.5rem;
         color: white;
-        border-bottom: 4px solid #C9A961;
-        -webkit-box-shadow: 0 4px 15px rgba(26, 26, 46, 0.3);
-        -moz-box-shadow: 0 4px 15px rgba(26, 26, 46, 0.3);
-        box-shadow: 0 4px 15px rgba(26, 26, 46, 0.3);
     }
     .main-header h1 {
         margin: 0;
-        font-size: 1.6rem;
-        color: #C9A961;
-        font-weight: 700;
+        font-size: 2rem;
     }
     .main-header p {
         margin: 0.5rem 0 0 0;
         opacity: 0.9;
-        color: #f5f0e8;
-        font-size: 0.95rem;
     }
     
-    /* Step indicator styling - Gold accent */
+    /* Step indicator styling */
     .step-box {
-        background: -webkit-linear-gradient(315deg, #f5f0e8 0%, #fff 100%);
-        background: -moz-linear-gradient(315deg, #f5f0e8 0%, #fff 100%);
-        background: linear-gradient(135deg, #f5f0e8 0%, #fff 100%);
-        border-left: 4px solid #C9A961;
-        padding: 0.7rem 1rem;
-        margin-bottom: 0.8rem;
-        -webkit-border-radius: 0 8px 8px 0;
-        -moz-border-radius: 0 8px 8px 0;
+        background: #f8f9fa;
+        border-left: 4px solid #2d5a87;
+        padding: 0.8rem 1rem;
+        margin-bottom: 1rem;
         border-radius: 0 8px 8px 0;
-        -webkit-box-shadow: 0 2px 8px rgba(201, 169, 97, 0.15);
-        -moz-box-shadow: 0 2px 8px rgba(201, 169, 97, 0.15);
-        box-shadow: 0 2px 8px rgba(201, 169, 97, 0.15);
     }
     .step-number {
-        background: linear-gradient(135deg, #C9A961 0%, #D4AF37 100%);
-        color: #1a1a2e;
-        padding: 3px 12px;
+        background: #2d5a87;
+        color: white;
+        padding: 2px 10px;
         border-radius: 15px;
         font-weight: bold;
-        margin-right: 10px;
-        font-size: 0.85rem;
+        margin-right: 8px;
     }
     
-    /* Info card styling - Cream theme */
+    /* Info card styling */
     .info-card {
-        background: linear-gradient(135deg, #f5f0e8 0%, #fff 100%);
-        border: 1px solid #C9A961;
+        background: linear-gradient(135deg, #e8f4f8 0%, #f0f7fa 100%);
+        border: 1px solid #bee5eb;
         padding: 1rem;
-        border-radius: 10px;
+        border-radius: 8px;
         margin: 1rem 0;
-        box-shadow: 0 2px 8px rgba(201, 169, 97, 0.1);
     }
     
     /* Quick tip styling */
     .quick-tip {
-        background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
-        border: 1px solid #C9A961;
+        background: #fff3cd;
+        border: 1px solid #ffc107;
         padding: 0.7rem 1rem;
         border-radius: 8px;
         font-size: 0.9rem;
     }
     
-    /* Sidebar header */
-    .sidebar-header {
-        background: linear-gradient(135deg, #C9A961 0%, #D4AF37 100%);
-        padding: 1rem;
-        border-radius: 10px;
-        margin-bottom: 1rem;
-        color: #1a1a2e;
-        text-align: center;
-        font-weight: bold;
+    /* Section divider */
+    .section-divider {
+        border-top: 2px solid #e9ecef;
+        margin: 1.5rem 0;
     }
     
-    /* Nav button in sidebar */
-    .nav-button {
-        background: rgba(201, 169, 97, 0.2);
-        border: 1px solid #C9A961;
-        padding: 0.8rem 1rem;
-        border-radius: 8px;
-        margin: 0.5rem 0;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        color: #f5f0e8;
-        text-align: left;
-    }
-    .nav-button:hover {
-        background: rgba(201, 169, 97, 0.4);
-    }
-    .nav-button.active {
-        background: #C9A961;
-        color: #1a1a2e;
-    }
-    
-    /* Success card */
-    .success-card {
-        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-        border: 1px solid #28a745;
-        padding: 1rem;
-        border-radius: 8px;
-        margin: 1rem 0;
-    }
-    
-    /* Streamlit button overrides */
-    .stButton > button[data-testid="baseButton-primary"] {
-        background: linear-gradient(135deg, #C9A961 0%, #D4AF37 100%) !important;
-        color: #1a1a2e !important;
-        border: none !important;
-        font-weight: 600 !important;
-        border-radius: 8px !important;
-        transition: all 0.3s ease !important;
-    }
-    .stButton > button[data-testid="baseButton-primary"]:hover {
-        background: linear-gradient(135deg, #D4AF37 0%, #E5C158 100%) !important;
-        box-shadow: 0 4px 12px rgba(201, 169, 97, 0.4) !important;
-    }
-    
-    /* Metrics styling */
-    [data-testid="stMetric"] {
-        background: linear-gradient(135deg, #fff 0%, #f5f0e8 100%);
-        padding: 1rem;
-        border-radius: 10px;
-        border: 1px solid #C9A961;
-        box-shadow: 0 2px 8px rgba(201, 169, 97, 0.1);
-    }
-    [data-testid="stMetricLabel"] {
-        color: #1a1a2e !important;
-    }
-    [data-testid="stMetricValue"] {
-        color: #C9A961 !important;
-        font-weight: 700 !important;
-    }
-    
-    /* Data editor styling */
-    .stDataFrame {
-        border: 1px solid #C9A961 !important;
-        border-radius: 10px !important;
-        overflow: hidden;
-    }
-    
-    /* Expander styling */
-    .streamlit-expanderHeader {
-        background: linear-gradient(135deg, #f5f0e8 0%, #fff 100%) !important;
-        border: 1px solid #C9A961 !important;
-        border-radius: 8px !important;
-    }
-    
-    /* ===== Mobile Responsive ===== */
-    @media (max-width: 768px) {
-        .main-header {
-            padding: 1rem;
-        }
-        .main-header h1 {
-            font-size: 1.3rem;
-        }
-        .main-header p {
-            font-size: 0.85rem;
-        }
-        .step-box {
-            padding: 0.6rem 0.8rem;
-        }
-        .step-number {
-            padding: 2px 8px;
-            font-size: 0.8rem;
-        }
-        [data-testid="stMetric"] {
-            padding: 0.7rem;
-        }
-        [data-testid="stMetricValue"] {
-            font-size: 1.2rem !important;
-        }
-    }
-    
-    @media (max-width: 480px) {
-        .main-header h1 {
-            font-size: 1.1rem;
-        }
-        section[data-testid="stSidebar"] {
-            width: 100% !important;
-        }
+    /* Product count badge */
+    .product-badge {
+        background: #28a745;
+        color: white;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
     }
 </style>
+""", unsafe_allow_html=True)
+
+# Main Header
+st.markdown("""
+<div class="main-header">
+    <h1>📄 Professional Quotation Builder</h1>
+    <p>Create professional quotations with automatic VAT calculation and PDF generation</p>
+</div>
 """, unsafe_allow_html=True)
 
 # Initialize DB
 init_db()
 
-# ============================================
-# SIDEBAR - Navigation & Product Management
-# ============================================
-with st.sidebar:
-    # Company branding header
+# Load product count for display
+product_count = len(load_products_from_db())
+
+# Tabs with better labels
+tab1, tab2 = st.tabs(["📝 Create Quotation", "⚙️ Manage Products"])
+
+with tab1:
+    # Quick status bar
+    col_status1, col_status2, col_status3 = st.columns(3)
+    with col_status1:
+        st.metric("📦 Products Available", product_count)
+    with col_status2:
+        st.metric("💰 VAT Rate", "15%")
+    with col_status3:
+        st.metric("💵 Currency", "SAR")
+    
+    st.divider()
+    
+    # Step 1: Customer Details
     st.markdown("""
-    <div class="sidebar-header">
-        <h3 style="margin:0; font-size:1.1rem;">🏨 Oasis Cotton Co.</h3>
-        <p style="margin:0.3rem 0 0 0; font-size:0.8rem; opacity:0.9;">Quotation Builder</p>
+    <div class="step-box">
+        <span class="step-number">1</span>
+        <strong>Enter Customer & Quotation Details</strong>
     </div>
     """, unsafe_allow_html=True)
     
-    # Navigation
-    st.markdown("##### 📍 Navigation")
-    st.info("📝 **Quotation Generator** - Create & manage quotations")
+    col1, col2 = st.columns(2)
+    with col1:
+        date = st.date_input("📅 Quotation Date", help="Date of the quotation")
+        bill_no = st.text_input("🔢 Quotation Number", value="1001", help="Unique quotation reference number")
+        customer_name = st.text_input("👤 Customer Name", placeholder="Enter customer name...", help="Name of the customer")
+    with col2:
+        customer_address = st.text_input("📍 Customer Address", placeholder="Enter address...", help="Customer's address")
+        customer_vat = st.text_input("🏢 Customer VAT No.", placeholder="e.g., 300000000000003", help="Customer's VAT registration number")
+        payment_terms = st.text_input("💳 Payment Method", value="Cash / Credit", help="Payment terms or method")
+
+    st.divider()
+
+    # Step 2: Upload Letterhead
+    st.markdown("""
+    <div class="step-box">
+        <span class="step-number">2</span>
+        <strong>Upload Your Company Letterhead</strong>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    letterhead_file = st.file_uploader(
+        "📎 Upload Letterhead PDF", 
+        type=["pdf"], 
+        key="lh_uploader",
+        help="Upload your company's letterhead PDF. The quotation will be generated on top of this."
+    )
+    
+    if not letterhead_file:
+        st.info("💡 **Tip:** Upload your company letterhead to generate professional branded quotations.")
+    else:
+        st.success("✅ Letterhead uploaded successfully!")
     
     st.divider()
+    
+    # Step 3: Product Selection
+    st.markdown("""
+    <div class="step-box">
+        <span class="step-number">3</span>
+        <strong>Select Products & Set Quantities</strong>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    db_products = load_products_from_db()
+    
+    if db_products.empty:
+        st.warning("⚠️ **No products in database!** Go to the '⚙️ Manage Products' tab to add products.")
+        st.markdown("""
+        <div class="info-card">
+            <strong>🚀 Quick Start Guide:</strong><br>
+            1. Click on the <strong>"⚙️ Manage Products"</strong> tab above<br>
+            2. Add products manually OR import from Excel/PDF<br>
+            3. Come back here to create quotations
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.caption(f"📦 **{len(db_products)} products available** — Set quantity > 0 to add items to your quotation")
+        
+        if 'Quantity' not in db_products.columns:
+            db_products['Quantity'] = 0
+            
+        edited_df = st.data_editor(
+            db_products,
+            column_config={
+                "Product": st.column_config.TextColumn("📦 Product Name", disabled=True, width="large"),
+                "Price": st.column_config.NumberColumn("💰 Unit Price (SAR)", format="%.2f", disabled=True),
+                "Quantity": st.column_config.NumberColumn("🔢 Qty", min_value=0, step=1, format="%d", width="small")
+            },
+            hide_index=True,
+            use_container_width=True,
+            num_rows="fixed",
+            height=400
+        )
+        
+        selected_items = edited_df[edited_df['Quantity'] > 0].copy()
+        
+        if not selected_items.empty:
+            st.divider()
+            
+            # Step 4: Review & Generate
+            st.markdown("""
+            <div class="step-box">
+                <span class="step-number">4</span>
+                <strong>Review & Generate Quotation</strong>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Calculate totals
+            selected_items['Subtotal'] = selected_items['Price'] * selected_items['Quantity']
+            selected_items['Tax (15%)'] = selected_items['Subtotal'] * 0.15
+            selected_items['Total'] = selected_items['Subtotal'] + selected_items['Tax (15%)']
+            grand_total = selected_items['Total'].sum()
+            subtotal_sum = selected_items['Subtotal'].sum()
+            tax_sum = selected_items['Tax (15%)'].sum()
+            
+            # Summary metrics
+            st.markdown("### 📋 Quotation Summary")
+            
+            sum_col1, sum_col2, sum_col3, sum_col4 = st.columns(4)
+            with sum_col1:
+                st.metric("📦 Items", len(selected_items))
+            with sum_col2:
+                st.metric("💵 Subtotal", f"SAR {subtotal_sum:,.2f}")
+            with sum_col3:
+                st.metric("🏛️ VAT (15%)", f"SAR {tax_sum:,.2f}")
+            with sum_col4:
+                st.metric("💰 Grand Total", f"SAR {grand_total:,.2f}", delta=None)
+            
+            # Detailed preview
+            with st.expander("📊 View Detailed Breakdown", expanded=True):
+                st.dataframe(
+                    selected_items[['Product', 'Price', 'Quantity', 'Subtotal', 'Tax (15%)', 'Total']],
+                    use_container_width=True,
+                    column_config={
+                        "Product": st.column_config.TextColumn("Product"),
+                        "Price": st.column_config.NumberColumn("Unit Price", format="SAR %.2f"),
+                        "Quantity": st.column_config.NumberColumn("Qty", format="%d"),
+                        "Subtotal": st.column_config.NumberColumn("Subtotal", format="SAR %.2f"),
+                        "Tax (15%)": st.column_config.NumberColumn("VAT", format="SAR %.2f"),
+                        "Total": st.column_config.NumberColumn("Total", format="SAR %.2f"),
+                    }
+                )
+            
+            st.divider()
+            
+            # Generate button
+            if letterhead_file:
+                gen_col1, gen_col2 = st.columns([1, 3])
+                with gen_col1:
+                    if st.button("🚀 Generate PDF Quotation", type="primary", use_container_width=True):
+                        with st.spinner("Generating your quotation..."):
+                            header_info = {
+                                "date": str(date),
+                                "bill_no": bill_no,
+                                "customer": customer_name,
+                                "address": customer_address,
+                                "vat_no": customer_vat,
+                                "terms": payment_terms
+                            }
+                            
+                            pdf_bytes = generate_pdf(selected_items, letterhead_file, grand_total, header_info)
+                            
+                            if pdf_bytes:
+                                st.success("✅ PDF Generated Successfully!")
+                                st.download_button(
+                                    label="📥 Download PDF Quotation",
+                                    data=pdf_bytes,
+                                    file_name=f"Quotation_{bill_no}.pdf",
+                                    mime="application/pdf",
+                                    use_container_width=True
+                                )
+                            else:
+                                st.error("❌ Failed to generate PDF. Please check your inputs.")
+            else:
+                st.warning("⚠️ **Upload a letterhead PDF** (Step 2) to enable PDF generation.")
+        else:
+            st.markdown("""
+            <div class="quick-tip">
+                💡 <strong>How to add items:</strong> Set the <strong>Qty</strong> column to any number greater than 0 for products you want to include in your quotation.
+            </div>
+            """, unsafe_allow_html=True)
+
+
+with tab2:
+    st.markdown("### ⚙️ Product & Price Management")
+    st.caption("Add, edit, or import products for your quotations")
     
     # Current status
     current_df = load_products_from_db()
-    st.metric("📦 Products in Database", len(current_df))
     
-    st.divider()
+    st.markdown(f"""
+    <div class="info-card">
+        <strong>📊 Database Status:</strong> Currently storing <strong>{len(current_df)}</strong> products
+    </div>
+    """, unsafe_allow_html=True)
     
-    # --- Add New Product ---
-    st.markdown("##### ➕ Add New Product")
-    new_product_name = st.text_input(
-        "Product Name", 
-        key="new_product_name", 
-        placeholder="e.g., Cotton Roll 100m",
-        label_visibility="collapsed"
-    )
-    new_product_price = st.number_input(
-        "Price (SAR)", 
-        min_value=0.0, 
-        step=0.50, 
-        format="%.2f", 
-        key="new_product_price"
-    )
-    if st.button("➕ Add Product", key="add_product_btn", use_container_width=True, type="primary"):
-        if new_product_name.strip():
-            new_row = pd.DataFrame([{'Product': new_product_name.strip(), 'Price': new_product_price}])
-            success, msg = save_products_to_db(new_row)
-            if success:
-                st.success(f"✅ Added!")
-                st.rerun()
+    # --- Add New Product Section ---
+    st.markdown("#### ➕ Add New Product")
+    
+    # Use a container for better alignment
+    add_col1, add_col2, add_col3 = st.columns([3, 2, 1], gap="medium")
+    with add_col1:
+        new_product_name = st.text_input(
+            "Product Name", 
+            key="new_product_name", 
+            placeholder="Enter product name (e.g., Cotton Roll 100m)",
+            help="Enter the name of the product"
+        )
+    with add_col2:
+        new_product_price = st.number_input(
+            "Price (SAR)", 
+            min_value=0.0, 
+            step=0.50, 
+            format="%.2f", 
+            key="new_product_price",
+            help="Unit price in SAR"
+        )
+    with add_col3:
+        # Add some vertical spacing to align the button with the inputs
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("➕ Add Product", key="add_product_btn", use_container_width=True, type="primary"):
+            if new_product_name.strip():
+                new_row = pd.DataFrame([{'Product': new_product_name.strip(), 'Price': new_product_price}])
+                success, msg = save_products_to_db(new_row)
+                if success:
+                    st.success(f"✅ Added '{new_product_name}' at SAR {new_product_price:.2f}")
+                    st.rerun()
+                else:
+                    st.error(f"❌ {msg}")
             else:
-                st.error(f"❌ {msg}")
-        else:
-            st.warning("Enter a name")
+                st.warning("⚠️ Please enter a product name.")
     
     st.divider()
     
-    # --- Edit Products (Expander) ---
-    with st.expander("✏️ Edit Products", expanded=False):
-        if not current_df.empty:
-            st.caption("Double-click to edit, check 🗑️ to delete")
-            
-            edit_df = current_df.copy()
-            edit_df.insert(0, 'Delete', False)
-            
-            edited_products = st.data_editor(
-                edit_df,
-                column_config={
-                    "Delete": st.column_config.CheckboxColumn("🗑️", default=False, width="small"),
-                    "Product": st.column_config.TextColumn("Product", width="medium"),
-                    "Price": st.column_config.NumberColumn("SAR", format="%.2f", width="small"),
-                },
-                hide_index=True,
-                use_container_width=True,
-                num_rows="fixed",
-                key="product_editor",
-                height=250
-            )
-            
-            if st.button("💾 Save Changes", type="primary", use_container_width=True):
+    # --- Edit Existing Products ---
+    st.markdown("#### ✏️ Edit Existing Products")
+    
+    if not current_df.empty:
+        st.markdown("""
+        <div class="quick-tip">
+            💡 <strong>How to edit:</strong> Double-click any cell to edit. Check the 🗑️ box to mark for deletion. Click <strong>Save All Changes</strong> when done.
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Add Delete column
+        edit_df = current_df.copy()
+        edit_df.insert(0, 'Delete', False)
+        
+        edited_products = st.data_editor(
+            edit_df,
+            column_config={
+                "Delete": st.column_config.CheckboxColumn(
+                    "🗑️",
+                    help="Check to delete this product",
+                    default=False,
+                    width="small"
+                ),
+                "Product": st.column_config.TextColumn(
+                    "📦 Product Name",
+                    help="Product name (must be unique)",
+                    max_chars=200,
+                    width="large"
+                ),
+                "Price": st.column_config.NumberColumn(
+                    "💰 Price (SAR)",
+                    help="Unit price in SAR",
+                    min_value=0.0,
+                    format="%.2f",
+                ),
+            },
+            hide_index=True,
+            use_container_width=True,
+            num_rows="fixed",
+            key="product_editor",
+            height=400
+        )
+        
+        # Count marked for deletion
+        delete_count = edited_products['Delete'].sum()
+        
+        # Action buttons
+        btn_col1, btn_col2, btn_col3 = st.columns([1, 1, 2])
+        with btn_col1:
+            if st.button("💾 Save All Changes", type="primary", use_container_width=True):
                 to_delete = edited_products[edited_products['Delete'] == True]['Product'].tolist()
                 to_update = edited_products[edited_products['Delete'] == False][['Product', 'Price']]
                 
@@ -774,50 +811,81 @@ with st.sidebar:
                     clear_db()
                     success, msg = save_products_to_db(to_update)
                     if success:
-                        st.success(f"✅ Saved!")
+                        delete_msg = f" Deleted {len(to_delete)} product(s)." if to_delete else ""
+                        st.success(f"✅ Saved {len(to_update)} products.{delete_msg}")
                         st.rerun()
                     else:
                         st.error(f"❌ {msg}")
                 elif to_delete:
-                    st.success(f"✅ Deleted!")
+                    st.success(f"✅ Deleted {len(to_delete)} product(s).")
                     st.rerun()
-        else:
-            st.info("No products yet")
+        
+        with btn_col2:
+            if delete_count > 0:
+                st.warning(f"🗑️ {int(delete_count)} marked for deletion")
+        
+        with btn_col3:
+            st.caption(f"📦 **{len(current_df)}** products in database")
+    else:
+        st.info("📭 No products in database. Add your first product above or import from a file.")
     
-    # --- Import from File (Expander) ---
-    with st.expander("📤 Import from File", expanded=False):
+    st.divider()
+    
+    # --- Import from File (Collapsible) ---
+    with st.expander("📤 Import Products from File (Excel/PDF)", expanded=False):
+        st.caption("Bulk import products from Excel or PDF files")
+        
+        st.markdown("""
+        <div class="info-card">
+            <strong>📋 File Requirements:</strong><br>
+            • <strong>Excel:</strong> Must have columns named "Product" and "Price"<br>
+            • <strong>PDF:</strong> Must follow the Item_Pricing.pdf format
+        </div>
+        """, unsafe_allow_html=True)
+        
         upload_type = st.radio(
-            "File type:", 
-            ["Excel", "PDF"],
+            "Select file type:", 
+            ["📊 Excel (.xlsx)", "📄 PDF Price List"],
             key="upload_format",
             horizontal=True
         )
         
-        if upload_type == "Excel":
-            uploaded_master = st.file_uploader("Upload Excel", type=["xlsx"], key="excel_uploader", label_visibility="collapsed")
+        if "Excel" in upload_type:
+            uploaded_master = st.file_uploader(
+                "Upload Excel File", 
+                type=["xlsx"], 
+                key="excel_uploader",
+                help="Excel file with 'Product' and 'Price' columns"
+            )
             if uploaded_master:
-                if st.button("📥 Import Excel", type="primary", use_container_width=True):
+                if st.button("📥 Import from Excel", type="primary"):
                     try:
-                        with st.spinner("Importing..."):
+                        with st.spinner("Importing products..."):
                             master_df = pd.read_excel(uploaded_master)
                             success, msg = save_products_to_db(master_df)
                             if success:
-                                st.success("✅ Imported!")
+                                st.success(f"✅ {msg}")
                                 st.rerun()
                             else:
                                 st.error(f"❌ {msg}")
                     except Exception as e:
-                        st.error(f"❌ {e}")
-        else:
-            uploaded_pdf = st.file_uploader("Upload PDF", type=["pdf"], key="pdf_uploader", label_visibility="collapsed")
+                        st.error(f"❌ Error reading file: {e}")
+                        
+        else:  # PDF
+            uploaded_pdf = st.file_uploader(
+                "Upload PDF Price List", 
+                type=["pdf"], 
+                key="pdf_uploader",
+                help="PDF file in Item_Pricing.pdf format"
+            )
             if uploaded_pdf:
-                if st.button("📥 Import PDF", type="primary", use_container_width=True):
-                    with st.spinner("Parsing..."):
+                if st.button("📥 Import from PDF", type="primary"):
+                    with st.spinner("Parsing PDF..."):
                         df, msg = parse_pricing_pdf_stream(uploaded_pdf)
                         if df is not None:
                             success, save_msg = save_products_to_db(df)
                             if success:
-                                st.success(f"✅ Imported {len(df)} items!")
+                                st.success(f"✅ Parsed {len(df)} items. {save_msg}")
                                 st.rerun()
                             else:
                                 st.error(f"❌ {save_msg}")
@@ -827,204 +895,12 @@ with st.sidebar:
     st.divider()
     
     # --- Danger Zone ---
-    with st.expander("⚠️ Clear Database", expanded=False):
-        st.error("⚠️ This cannot be undone!")
-        if st.button("🗑️ Clear ALL", type="secondary", use_container_width=True):
-            clear_db()
-            st.success("Cleared!")
-            st.rerun()
+    with st.expander("⚠️ Danger Zone - Clear Database", expanded=False):
+        st.error("**Warning:** This will permanently delete ALL products from the database!")
+        col_danger1, col_danger2 = st.columns([1, 3])
+        with col_danger1:
+            if st.button("🗑️ Clear ALL Products", type="secondary", use_container_width=True):
+                clear_db()
+                st.success("✅ Database cleared.")
+                st.rerun()
 
-# ============================================
-# MAIN CONTENT - Quotation Builder
-# ============================================
-
-# Main Header
-st.markdown("""
-<div class="main-header">
-    <h1>🏨 Oasis Cotton Company - Quotation Builder</h1>
-    <p>Create professional quotations with automatic VAT calculation and PDF generation</p>
-</div>
-""", unsafe_allow_html=True)
-
-# Load product count for display
-product_count = len(load_products_from_db())
-
-# Quick status bar
-col_status1, col_status2, col_status3 = st.columns(3)
-with col_status1:
-    st.metric("📦 Products Available", product_count)
-with col_status2:
-    st.metric("💰 VAT Rate", "15%")
-with col_status3:
-    st.metric("💵 Currency", "SAR")
-
-st.divider()
-
-# Step 1: Customer Details
-st.markdown("""
-<div class="step-box">
-    <span class="step-number">1</span>
-    <strong>Enter Customer & Quotation Details</strong>
-</div>
-""", unsafe_allow_html=True)
-
-col1, col2 = st.columns(2)
-with col1:
-    date = st.date_input("📅 Quotation Date", help="Date of the quotation")
-    bill_no = st.text_input("🔢 Quotation Number", value="1001", help="Unique quotation reference number")
-    customer_name = st.text_input("👤 Customer Name", placeholder="Enter customer name...", help="Name of the customer")
-with col2:
-    customer_address = st.text_input("📍 Customer Address", placeholder="Enter address...", help="Customer's address")
-    customer_vat = st.text_input("🏢 Customer VAT No.", placeholder="e.g., 300000000000003", help="Customer's VAT registration number")
-    payment_terms = st.text_input("💳 Payment Method", value="Cash / Credit", help="Payment terms or method")
-
-st.divider()
-
-# Step 2: Upload Letterhead
-st.markdown("""
-<div class="step-box">
-    <span class="step-number">2</span>
-    <strong>Upload Your Company Letterhead</strong>
-</div>
-""", unsafe_allow_html=True)
-
-letterhead_file = st.file_uploader(
-    "📎 Upload Letterhead PDF", 
-    type=["pdf"], 
-    key="lh_uploader",
-    help="Upload your company's letterhead PDF. The quotation will be generated on top of this."
-)
-
-if not letterhead_file:
-    st.info("💡 **Tip:** Upload your company letterhead to generate professional branded quotations.")
-else:
-    st.success("✅ Letterhead uploaded!")
-
-st.divider()
-
-# Step 3: Product Selection
-st.markdown("""
-<div class="step-box">
-    <span class="step-number">3</span>
-    <strong>Select Products & Set Quantities</strong>
-</div>
-""", unsafe_allow_html=True)
-
-db_products = load_products_from_db()
-
-if db_products.empty:
-    st.warning("⚠️ **No products in database!** Use the sidebar (⚙️ Product Management) to add products.")
-    st.markdown("""
-    <div class="info-card">
-        <strong>🚀 Quick Start:</strong><br>
-        1. Look at the <strong>sidebar on the left</strong> (⚙️ Product Management)<br>
-        2. Add products manually OR import from Excel/PDF<br>
-        3. Then select products here to build your quotation
-    </div>
-    """, unsafe_allow_html=True)
-else:
-    st.caption(f"📦 **{len(db_products)} products available** — Set quantity > 0 to add items to your quotation")
-    
-    if 'Quantity' not in db_products.columns:
-        db_products['Quantity'] = 0
-        
-    edited_df = st.data_editor(
-        db_products,
-        column_config={
-            "Product": st.column_config.TextColumn("📦 Product Name", disabled=True, width="large"),
-            "Price": st.column_config.NumberColumn("💰 Unit Price (SAR)", format="%.2f", disabled=True),
-            "Quantity": st.column_config.NumberColumn("🔢 Qty", min_value=0, step=1, format="%d", width="small")
-        },
-        hide_index=True,
-        use_container_width=True,
-        num_rows="fixed",
-        height=350
-    )
-    
-    selected_items = edited_df[edited_df['Quantity'] > 0].copy()
-    
-    if not selected_items.empty:
-        st.divider()
-        
-        # Step 4: Review & Generate
-        st.markdown("""
-        <div class="step-box">
-            <span class="step-number">4</span>
-            <strong>Review & Generate Quotation</strong>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Calculate totals
-        selected_items['Subtotal'] = selected_items['Price'] * selected_items['Quantity']
-        selected_items['Tax (15%)'] = selected_items['Subtotal'] * 0.15
-        selected_items['Total'] = selected_items['Subtotal'] + selected_items['Tax (15%)']
-        grand_total = selected_items['Total'].sum()
-        subtotal_sum = selected_items['Subtotal'].sum()
-        tax_sum = selected_items['Tax (15%)'].sum()
-        
-        # Summary metrics
-        st.markdown("### 📋 Quotation Summary")
-        
-        sum_col1, sum_col2, sum_col3, sum_col4 = st.columns(4)
-        with sum_col1:
-            st.metric("📦 Items", len(selected_items))
-        with sum_col2:
-            st.metric("💵 Subtotal", f"SAR {subtotal_sum:,.2f}")
-        with sum_col3:
-            st.metric("🏛️ VAT (15%)", f"SAR {tax_sum:,.2f}")
-        with sum_col4:
-            st.metric("💰 Grand Total", f"SAR {grand_total:,.2f}")
-        
-        # Detailed preview
-        with st.expander("📊 View Detailed Breakdown", expanded=True):
-            st.dataframe(
-                selected_items[['Product', 'Price', 'Quantity', 'Subtotal', 'Tax (15%)', 'Total']],
-                use_container_width=True,
-                column_config={
-                    "Product": st.column_config.TextColumn("Product"),
-                    "Price": st.column_config.NumberColumn("Unit Price", format="SAR %.2f"),
-                    "Quantity": st.column_config.NumberColumn("Qty", format="%d"),
-                    "Subtotal": st.column_config.NumberColumn("Subtotal", format="SAR %.2f"),
-                    "Tax (15%)": st.column_config.NumberColumn("VAT", format="SAR %.2f"),
-                    "Total": st.column_config.NumberColumn("Total", format="SAR %.2f"),
-                }
-            )
-        
-        st.divider()
-        
-        # Generate button
-        if letterhead_file:
-            gen_col1, gen_col2 = st.columns([1, 3])
-            with gen_col1:
-                if st.button("🚀 Generate PDF Quotation", type="primary", use_container_width=True):
-                    with st.spinner("Generating your quotation..."):
-                        header_info = {
-                            "date": str(date),
-                            "bill_no": bill_no,
-                            "customer": customer_name,
-                            "address": customer_address,
-                            "vat_no": customer_vat,
-                            "terms": payment_terms
-                        }
-                        
-                        pdf_bytes = generate_pdf(selected_items, letterhead_file, grand_total, header_info)
-                        
-                        if pdf_bytes:
-                            st.success("✅ PDF Generated Successfully!")
-                            st.download_button(
-                                label="📥 Download PDF Quotation",
-                                data=pdf_bytes,
-                                file_name=f"Quotation_{bill_no}.pdf",
-                                mime="application/pdf",
-                                use_container_width=True
-                            )
-                        else:
-                            st.error("❌ Failed to generate PDF. Please check your inputs.")
-        else:
-            st.warning("⚠️ **Upload a letterhead PDF** (Step 2) to enable PDF generation.")
-    else:
-        st.markdown("""
-        <div class="quick-tip">
-            💡 <strong>How to add items:</strong> Set the <strong>Qty</strong> column to any number greater than 0 for products you want to include in your quotation.
-        </div>
-        """, unsafe_allow_html=True)
