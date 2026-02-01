@@ -487,27 +487,6 @@ st.markdown("""
     section[data-testid="stSidebar"] hr {
         border-color: #C9A961 !important;
     }
-    section[data-testid="stSidebar"] .stMarkdownContainer,
-    section[data-testid="stSidebar"] div[data-testid="element-container"],
-    section[data-testid="stSidebar"] div[class*="stElementContainer"] {
-        background-color: #F0E2B6 !important; /* Light Golden */
-        color: #1a1a2e !important;
-        padding: 0.5rem 0.8rem !important;
-        border-radius: 8px !important;
-        margin: 0.3rem 0 !important;
-    }
-    
-    /* Ensure all text inside these light boxes is dark */
-    section[data-testid="stSidebar"] .stMarkdownContainer *,
-    section[data-testid="stSidebar"] div[data-testid="element-container"] *,
-    section[data-testid="stSidebar"] div[class*="stElementContainer"] * {
-        color: #1a1a2e !important;
-    }
-    
-    /* Exceptions for inputs which have their own dark styling */
-    section[data-testid="stSidebar"] input {
-        color: #ffffff !important;
-    }
     
     /* Main header styling - Elegant dark with gold accent */
     .main-header {
@@ -719,11 +698,11 @@ init_db()
 # SIDEBAR - Navigation Only (Clean Design)
 # ============================================
 with st.sidebar:
-    # Company branding header - MORE VISIBLE
+    # Company branding header (as shown in attached screenshot)
     st.markdown("""
     <div class="sidebar-header">
-        <h3 style="margin:0; font-size:1.3rem; font-weight:700; color:#1a1a2e !important;">🏨 Oasis Cotton Co.</h3>
-        <p style="margin:0.3rem 0 0 0; font-size:0.9rem; color:#1a1a2e !important; font-weight:500;">Quotation Builder</p>
+        <h3 style="margin:0; font-size:1.1rem;">🏨 Oasis Cotton Co.</h3>
+        <p style="margin:0.3rem 0 0 0; font-size:0.8rem; opacity:0.9;">Quotation Builder</p>
     </div>
     """, unsafe_allow_html=True)
     
@@ -961,8 +940,21 @@ else:
     products_df = load_products_from_db()
     
     # Quick status
-    # Quick status
-    st.metric("📦 Total Products", len(products_df))
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("📦 Total Products", len(products_df))
+    with col2:
+        if not products_df.empty:
+            avg_price = products_df['Price'].mean()
+            st.metric("💰 Average Price", f"SAR {avg_price:,.2f}")
+        else:
+            st.metric("💰 Average Price", "N/A")
+    with col3:
+        if not products_df.empty:
+            total_value = products_df['Price'].sum()
+            st.metric("📊 Total Catalog Value", f"SAR {total_value:,.2f}")
+        else:
+            st.metric("📊 Total Catalog Value", "N/A")
     
     st.divider()
     
@@ -1087,51 +1079,52 @@ else:
     
     st.divider()
     
-    # --- Import from File (Collapsible) ---
-    with st.expander("📤 Import Products from File", expanded=False):
-        st.markdown("""
-        <div class="info-card">
-            <strong>📋 File Requirements:</strong><br>
-            • <strong>Excel:</strong> Must have columns named "Product" and "Price"<br>
-            • <strong>PDF:</strong> Must follow the Item_Pricing.pdf format
-        </div>
-        """, unsafe_allow_html=True)
-        
-        import_col1, import_col2 = st.columns(2)
-        
-        with import_col1:
-            st.markdown("##### 📊 Import from Excel")
-            uploaded_excel = st.file_uploader("Upload Excel File", type=["xlsx"], key="excel_uploader_main")
-            if uploaded_excel:
-                if st.button("📥 Import Excel", type="primary", use_container_width=True):
-                    try:
-                        with st.spinner("Importing products..."):
-                            master_df = pd.read_excel(uploaded_excel)
-                            success, msg = save_products_to_db(master_df)
-                            if success:
-                                st.success(f"✅ {msg}")
-                                st.rerun()
-                            else:
-                                st.error(f"❌ {msg}")
-                    except Exception as e:
-                        st.error(f"❌ Error reading file: {e}")
-        
-        with import_col2:
-            st.markdown("##### 📄 Import from PDF")
-            uploaded_pdf = st.file_uploader("Upload PDF Price List", type=["pdf"], key="pdf_uploader_main")
-            if uploaded_pdf:
-                if st.button("📥 Import PDF", type="primary", use_container_width=True):
-                    with st.spinner("Parsing PDF..."):
-                        df, msg = parse_pricing_pdf_stream(uploaded_pdf)
-                        if df is not None:
-                            success, save_msg = save_products_to_db(df)
-                            if success:
-                                st.success(f"✅ Parsed {len(df)} items. {save_msg}")
-                                st.rerun()
-                            else:
-                                st.error(f"❌ {save_msg}")
+    # --- Import from File ---
+    st.markdown("### 📤 Import Products from File")
+    
+    st.markdown("""
+    <div class="info-card">
+        <strong>📋 File Requirements:</strong><br>
+        • <strong>Excel:</strong> Must have columns named "Product" and "Price"<br>
+        • <strong>PDF:</strong> Must follow the Item_Pricing.pdf format
+    </div>
+    """, unsafe_allow_html=True)
+    
+    import_col1, import_col2 = st.columns(2)
+    
+    with import_col1:
+        st.markdown("##### 📊 Import from Excel")
+        uploaded_excel = st.file_uploader("Upload Excel File", type=["xlsx"], key="excel_uploader_main")
+        if uploaded_excel:
+            if st.button("📥 Import Excel", type="primary", use_container_width=True):
+                try:
+                    with st.spinner("Importing products..."):
+                        master_df = pd.read_excel(uploaded_excel)
+                        success, msg = save_products_to_db(master_df)
+                        if success:
+                            st.success(f"✅ {msg}")
+                            st.rerun()
                         else:
                             st.error(f"❌ {msg}")
+                except Exception as e:
+                    st.error(f"❌ Error reading file: {e}")
+    
+    with import_col2:
+        st.markdown("##### 📄 Import from PDF")
+        uploaded_pdf = st.file_uploader("Upload PDF Price List", type=["pdf"], key="pdf_uploader_main")
+        if uploaded_pdf:
+            if st.button("📥 Import PDF", type="primary", use_container_width=True):
+                with st.spinner("Parsing PDF..."):
+                    df, msg = parse_pricing_pdf_stream(uploaded_pdf)
+                    if df is not None:
+                        success, save_msg = save_products_to_db(df)
+                        if success:
+                            st.success(f"✅ Parsed {len(df)} items. {save_msg}")
+                            st.rerun()
+                        else:
+                            st.error(f"❌ {save_msg}")
+                    else:
+                        st.error(f"❌ {msg}")
     
     st.divider()
     
