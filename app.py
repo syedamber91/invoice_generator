@@ -12,6 +12,7 @@ import re
 
 import arabic_reshaper
 from bidi.algorithm import get_display
+from email_utils import send_email_with_pdf
 
 # --- Configuration ---
 DB_FILE = "products.db"
@@ -422,6 +423,17 @@ def generate_pdf(invoice_df, letterhead_bytes, grand_total, header_info):
         return final_pdf.getvalue()
     return None
 
+# --- Sidebar Email Settings ---
+with st.sidebar.expander("📧 Email Settings"):
+    st.caption("Configure your email to send quotations directly")
+    sender_email = st.text_input("Sender Email", placeholder="your_email@gmail.com", key="smtp_email")
+    sender_password = st.text_input("App Password", type="password", placeholder="vxxx xxxx xxxx xxxx", help="Use an App Password for Gmail/Outlook", key="smtp_password")
+    smtp_server = st.text_input("SMTP Server", value="smtp.gmail.com", key="smtp_server")
+    smtp_port = st.number_input("SMTP Port", value=587, step=1, key="smtp_port")
+    st.caption("[How to get App Password?](https://support.google.com/accounts/answer/185833)")
+
+st.sidebar.divider()
+
 # --- Main App ---
 
 # Custom CSS - Oasis Cotton Company Theme
@@ -815,12 +827,37 @@ with tab1:
             
             st.divider()
             
+            # Email Options
+            email_send_enabled = False
+            recipient_email = ""
+            email_subject = ""
+            email_body = ""
+            
+            with st.expander("📧 Email Quotation to Client (Optional)", expanded=False):
+                st.caption("Fill this to send the PDF via email immediately after generation.")
+                col_email1, col_email2 = st.columns(2)
+                with col_email1:
+                    recipient_email = st.text_input("Recipient Email", placeholder="client@example.com", help="Client's email address")
+                with col_email2:
+                    email_subject = st.text_input("Subject", value=f"Quotation from Oasis Cotton Company - {bill_no}")
+                
+                email_body = st.text_area("Message Body", value=f"Dear {customer_name},\n\nPlease find attached the quotation as requested.\n\nBest regards,\nOasis Cotton Company", height=100)
+                
+                if recipient_email:
+                    if not sender_email or not sender_password:
+                        st.warning("⚠️ Please configure 'Sender Email' and 'App Password' in the Sidebar first!")
+                    else:
+                        st.info("✅ Email will be sent upon clicking 'Generate PDF Quotation'")
+                        email_send_enabled = True
+
+            st.divider()
+            
             # Generate button
             if letterhead_file:
                 gen_col1, gen_col2 = st.columns([1, 3])
                 with gen_col1:
-                    if st.button("🚀 Generate PDF Quotation", type="primary", use_container_width=True):
-                        with st.spinner("Generating your quotation..."):
+                    if st.button("🚀 Generate PDF & Email", type="primary", use_container_width=True):
+                        with st.spinner("Generating quotation..."):
                             header_info = {
                                 "date": str(date),
                                 "bill_no": bill_no,
@@ -834,6 +871,23 @@ with tab1:
                             
                             if pdf_bytes:
                                 st.success("✅ PDF Generated Successfully!")
+                                
+                                # Send Email Logic
+                                if email_send_enabled:
+                                    with st.spinner("📧 Sending email..."):
+                                        success, msg = send_email_with_pdf(
+                                            sender_email, sender_password, 
+                                            recipient_email, email_subject, 
+                                            email_body, pdf_bytes, 
+                                            pdf_filename=f"Quotation_{bill_no}.pdf",
+                                            smtp_server=smtp_server,
+                                            smtp_port=smtp_port
+                                        )
+                                        if success:
+                                            st.success(f"✅ Email sent to {recipient_email}")
+                                        else:
+                                            st.error(f"❌ Email failed: {msg}")
+                                
                                 st.download_button(
                                     label="📥 Download PDF Quotation",
                                     data=pdf_bytes,
