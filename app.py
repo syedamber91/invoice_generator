@@ -226,6 +226,37 @@ def generate_pdf(invoice_df, letterhead_bytes, grand_total, header_info):
     draw_styled_row(y_pos, "Total Amount Due", f"SAR {grand_total:,.2f}", is_bold=True, align_value_right=True)
     y_pos -= row_height
 
+    # --- Footer block: Validity, Payment Terms, Beneficiary, Bank, IBAN ---
+    footer_fields = [
+        ("Validity of Quotation", header_info.get('validity', '')),
+        ("Payment Terms", header_info.get('payment_terms', '')),
+        ("Beneficiary Name", header_info.get('beneficiary', '')),
+        ("Bank Name", header_info.get('bank_name', '')),
+        ("IBAN Number", header_info.get('iban', '')),
+    ]
+
+    # Need ~ (5 rows + header gap) ≈ 130pt of space; new page if not enough
+    if y_pos - (len(footer_fields) * row_height + 30) < 60:
+        can.showPage()
+        # Page break: fall back to a known top position for the footer
+        y_pos = 700
+
+    y_pos -= 20  # spacing between totals and footer block
+
+    can.setFont(font_name, 11)
+    can.setFillColorRGB(0, 0, 0)
+    can.drawString(table_x, y_pos, "Quotation Terms & Bank Details")
+    y_pos -= 8
+    can.setStrokeColorRGB(0.7, 0.7, 0.7)
+    can.setLineWidth(0.5)
+    can.line(table_x, y_pos, table_x + table_width, y_pos)
+    y_pos -= 6
+    can.setFont(font_name, 10)
+
+    for label, value in footer_fields:
+        draw_styled_row(y_pos, label, value if value else "—")
+        y_pos -= row_height
+
     can.save()
 
     # Merge with letterhead
@@ -465,7 +496,19 @@ with col1:
 with col2:
     customer_address = st.text_input("📍 Customer Address", placeholder="Enter address...", help="Customer's address")
     customer_vat = st.text_input("🏢 Customer VAT No.", placeholder="e.g., 300000000000003", help="Customer's VAT registration number")
-    payment_terms = st.text_input("💳 Payment Method", value="Cash / Credit", help="Payment terms or method")
+    payment_method = st.text_input("💳 Payment Method", value="Cash / Credit", help="How payment will be made (e.g., Cash, Credit, Bank Transfer)")
+
+st.markdown("##### 📜 Quotation Terms & Bank Details")
+st.caption("These appear at the end of the generated quotation PDF.")
+
+term_col1, term_col2 = st.columns(2)
+with term_col1:
+    validity = st.text_input("⏳ Validity of Quotation", value="30 days from quotation date", help="How long this quotation remains valid")
+    payment_terms = st.text_input("📑 Payment Terms", value="50% advance, 50% on delivery", help="Payment terms (e.g., Net 30, 50% advance)")
+    beneficiary = st.text_input("👥 Beneficiary Name", placeholder="e.g., Oasis Cotton Company", help="Name of the bank account holder")
+with term_col2:
+    bank_name = st.text_input("🏦 Bank Name", placeholder="e.g., Al Rajhi Bank", help="Bank where payment should be sent")
+    iban = st.text_input("🔢 IBAN Number", placeholder="e.g., SA00 0000 0000 0000 0000 0000", help="International Bank Account Number")
 
 st.divider()
 
@@ -609,7 +652,12 @@ if not selected_items.empty:
                         "customer": customer_name,
                         "address": customer_address,
                         "vat_no": customer_vat,
-                        "terms": payment_terms,
+                        "terms": payment_method,
+                        "validity": validity,
+                        "payment_terms": payment_terms,
+                        "beneficiary": beneficiary,
+                        "bank_name": bank_name,
+                        "iban": iban,
                     }
 
                     pdf_bytes = generate_pdf(selected_items, letterhead_file, grand_total, header_info)
