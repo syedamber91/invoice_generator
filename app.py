@@ -140,6 +140,17 @@ valid_items = valid_items[
     (valid_items['Price'].fillna(0) >= 0)
 ].copy()
 
+# Live totals — show immediately below the items table
+if not valid_items.empty:
+    grand_total_excl = (valid_items['Quantity'] * valid_items['Price']).sum()
+    vat_amount = grand_total_excl * 0.15
+    net_amount = grand_total_excl + vat_amount
+    s1, s2, s3, s4 = st.columns(4)
+    with s1: st.metric("Items", len(valid_items))
+    with s2: st.metric("Subtotal (Excl. VAT)", f"SAR {grand_total_excl:,.2f}")
+    with s3: st.metric("VAT (15%)", f"SAR {vat_amount:,.2f}")
+    with s4: st.metric("Net Total (Incl. VAT)", f"SAR {net_amount:,.2f}")
+
 st.divider()
 
 
@@ -163,18 +174,8 @@ with f2:
 st.divider()
 
 
-# ============ Review & Generate ============
+# ============ Generate ============
 if not valid_items.empty:
-    grand_total_excl = (valid_items['Quantity'] * valid_items['Price']).sum()
-    vat_amount = grand_total_excl * 0.15
-    net_amount = grand_total_excl + vat_amount
-
-    s1, s2, s3, s4 = st.columns(4)
-    with s1: st.metric("Items", len(valid_items))
-    with s2: st.metric("Subtotal", f"SAR {grand_total_excl:,.2f}")
-    with s3: st.metric("VAT (15%)", f"SAR {vat_amount:,.2f}")
-    with s4: st.metric("Net Total", f"SAR {net_amount:,.2f}")
-
     if letterhead_file:
         if st.button("🚀 Generate PDF Quotation", type="primary"):
             header_info = {
