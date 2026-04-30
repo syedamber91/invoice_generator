@@ -34,7 +34,7 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         return str(text)
 
     # Colors
-    RED = (0.78, 0.10, 0.13)
+    RED = (0.90, 0.05, 0.10)
     GREY_BG = (0.94, 0.94, 0.94)
     GREY_BORDER = (0.65, 0.65, 0.65)
     BLACK = (0, 0, 0)
@@ -105,14 +105,14 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         cell(left_x, y, left_w, row_h, label, value, value_color=color, value_bold=(color == RED))
         y -= row_h
 
-    # Right column header: "QUOTATION" red title spanning full right block
+    # Right column header: "QUOTATION" red bold title spanning full right block
     y = top_y
     set_stroke(GREY_BORDER)
     can.setLineWidth(0.5)
     set_fill((1, 1, 1))
     can.rect(right_x, y - row_h, right_w, row_h, stroke=1, fill=1)
     set_fill(RED)
-    can.setFont(font_name, 14)
+    can.setFont('Helvetica-Bold', 16)
     can.drawCentredString(right_x + right_w / 2, y - row_h + 5, "QUOTATION")
     y -= row_h
 
@@ -145,26 +145,34 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     table_x_start = 30
     table_total_w = sum(c[1] for c in cols)
 
-    # Header row
-    set_stroke(GREY_BORDER)
-    can.setLineWidth(0.5)
-    set_fill(GREY_BG)
-    can.rect(table_x_start, items_y - row_h, table_total_w, row_h, stroke=1, fill=1)
-    set_fill(BLACK)
-    can.setFont(font_name, 10)
-    cx = table_x_start
-    for title, w, _ in cols:
-        can.drawCentredString(cx + w / 2, items_y - row_h + 5, title)
-        # vertical separator
-        can.line(cx, items_y, cx, items_y - row_h)
-        cx += w
-    can.line(cx, items_y, cx, items_y - row_h)
+    def draw_items_header(y):
+        set_stroke(GREY_BORDER)
+        can.setLineWidth(0.5)
+        set_fill(GREY_BG)
+        can.rect(table_x_start, y - row_h, table_total_w, row_h, stroke=1, fill=1)
+        set_fill(BLACK)
+        can.setFont(font_name, 10)
+        cx = table_x_start
+        for title, w, _ in cols:
+            can.drawCentredString(cx + w / 2, y - row_h + 5, title)
+            can.line(cx, y, cx, y - row_h)
+            cx += w
+        can.line(cx, y, cx, y - row_h)
+        return y - row_h
 
-    items_y -= row_h
+    items_y = draw_items_header(items_y)
 
     # Item rows — render exactly the rows in the dataframe (don't pad)
+    # Bottom-of-page guard: leave room above the letterhead's footer
+    PAGE_BOTTOM_GUARD = 100
     can.setFont(font_name, 9)
     for i, row in enumerate(items_df.itertuples(index=False), start=1):
+        if items_y - row_h < PAGE_BOTTOM_GUARD:
+            can.showPage()
+            items_y = 760  # top of next page (clear of letterhead header)
+            items_y = draw_items_header(items_y)
+            can.setFont(font_name, 9)
+
         cx = table_x_start
         # white row
         set_fill((1, 1, 1))
@@ -197,6 +205,12 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         can.line(cx, items_y, cx, items_y - row_h)
 
         items_y -= row_h
+
+    # If totals + footer (~210pt) won't fit below the items, break to a new page
+    TOTALS_FOOTER_RESERVE = 210
+    if items_y - TOTALS_FOOTER_RESERVE < 60:
+        can.showPage()
+        items_y = 760
 
     # ============ TOTALS ============
     grand_total_excl = (items_df['Quantity'] * items_df['Price']).sum()
@@ -283,20 +297,30 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     new_pdf_layer = PdfReader(packet)
 
     if letterhead_bytes is not None:
-        existing_letterhead = PdfReader(letterhead_bytes)
+        # Read raw letterhead bytes once so we can re-parse fresh for each page
+        if hasattr(letterhead_bytes, 'read'):
+            letterhead_bytes.seek(0)
+            raw = letterhead_bytes.read()
+        else:
+            raw = letterhead_bytes
+        # Probe to count letterhead pages
+        probe = PdfReader(io.BytesIO(raw))
+        n_letterhead_pages = len(probe.pages)
+        if n_letterhead_pages == 0:
+            return None
+
         output = PdfWriter()
-        if len(existing_letterhead.pages) > 0:
-            page = existing_letterhead.pages[0]
-            page.merge_page(new_pdf_layer.pages[0])
-            output.add_page(page)
-            for i in range(1, len(new_pdf_layer.pages)):
-                bg = existing_letterhead.pages[i] if i < len(existing_letterhead.pages) else existing_letterhead.pages[0]
-                bg.merge_page(new_pdf_layer.pages[i])
-                output.add_page(bg)
-            final = io.BytesIO()
-            output.write(final)
-            return final.getvalue()
-        return None
+        for i in range(len(new_pdf_layer.pages)):
+            # Re-parse the letterhead each time so merge_page mutates a fresh page
+            fresh = PdfReader(io.BytesIO(raw))
+            bg_idx = i if i < n_letterhead_pages else 0
+            bg_page = fresh.pages[bg_idx]
+            bg_page.merge_page(new_pdf_layer.pages[i])
+            output.add_page(bg_page)
+
+        final = io.BytesIO()
+        output.write(final)
+        return final.getvalue()
 
     # No letterhead — return the layer as-is
     return packet.getvalue()
