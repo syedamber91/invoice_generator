@@ -133,17 +133,47 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     # ============ ITEMS TABLE ============
     items_y = top_y - 6 * row_h - 14
 
-    # Column widths (sum = 535)
+    # Column widths (sum = 535) — Description widened, surrounding columns trimmed
     cols = [
-        ("S. #", 35, "center"),
-        ("Description", 215, "left"),
-        ("Unit", 55, "center"),
-        ("Qty.", 55, "center"),
-        ("Unit Price", 80, "right"),
-        ("Total Price", 95, "right"),
+        ("S. #", 28, "center"),
+        ("Description", 280, "left"),
+        ("Unit", 45, "center"),
+        ("Qty.", 50, "center"),
+        ("Unit Price", 60, "right"),
+        ("Total Price", 72, "right"),
     ]
     table_x_start = 30
     table_total_w = sum(c[1] for c in cols)
+    desc_w = cols[1][1]
+    line_h = 11  # per-line height for wrapped text
+
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    def wrap_to_width(text, font, size, max_w, padding=8):
+        """Greedy word-wrap: returns lines that fit within max_w (minus padding)."""
+        avail = max_w - padding
+        if not text:
+            return [""]
+        words = text.split(' ')
+        lines, current = [], ""
+        for word in words:
+            candidate = (current + " " + word).strip() if current else word
+            if stringWidth(candidate, font, size) <= avail:
+                current = candidate
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+                # Hard-break very long single words
+                while stringWidth(current, font, size) > avail and len(current) > 1:
+                    cut = len(current)
+                    while cut > 1 and stringWidth(current[:cut], font, size) > avail:
+                        cut -= 1
+                    lines.append(current[:cut])
+                    current = current[cut:]
+        if current:
+            lines.append(current)
+        return lines or [""]
 
     def draw_items_header(y):
         set_stroke(GREY_BORDER)
@@ -162,49 +192,85 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
 
     items_y = draw_items_header(items_y)
 
-    # Item rows — render exactly the rows in the dataframe (don't pad)
-    # Bottom-of-page guard: leave room above the letterhead's footer
+    # Item rows
     PAGE_BOTTOM_GUARD = 100
     can.setFont(font_name, 9)
     for i, row in enumerate(items_df.itertuples(index=False), start=1):
-        if items_y - row_h < PAGE_BOTTOM_GUARD:
-            can.showPage()
-            items_y = 760  # top of next page (clear of letterhead header)
-            items_y = draw_items_header(items_y)
-            can.setFont(font_name, 9)
-
-        cx = table_x_start
-        # white row
-        set_fill((1, 1, 1))
-        can.rect(table_x_start, items_y - row_h, table_total_w, row_h, stroke=1, fill=1)
-        set_fill(BLACK)
-
         unit = getattr(row, 'Unit', '') or ''
         desc = shape(getattr(row, 'Product', ''))
         qty = getattr(row, 'Quantity', 0) or 0
         price = float(getattr(row, 'Price', 0) or 0)
         total = qty * price
 
-        values = [
-            (str(i), "center"),
-            (desc, "left"),
-            (str(unit), "center"),
-            (str(qty), "center"),
-            (f"{price:,.2f}", "right"),
-            (f"{total:,.2f}", "right"),
-        ]
-        for (val, align), (_, w, _) in zip(values, cols):
-            if align == "left":
-                can.drawString(cx + 4, items_y - row_h + 5, val)
-            elif align == "right":
-                can.drawRightString(cx + w - 4, items_y - row_h + 5, val)
-            else:
-                can.drawCentredString(cx + w / 2, items_y - row_h + 5, val)
-            can.line(cx, items_y, cx, items_y - row_h)
-            cx += w
-        can.line(cx, items_y, cx, items_y - row_h)
+        # Wrap the description and grow row height to fit
+        desc_lines = wrap_to_width(desc, font_name, 9, desc_w)
+        row_h_actual = max(row_h, line_h * len(desc_lines) + 6)
 
-        items_y -= row_h
+        # Page break check using the *actual* row height
+        if items_y - row_h_actual < PAGE_BOTTOM_GUARD:
+            can.showPage()
+            items_y = 760
+            items_y = draw_items_header(items_y)
+            can.setFont(font_name, 9)
+
+        # White row background
+        set_fill((1, 1, 1))
+        can.rect(table_x_start, items_y - row_h_actual, table_total_w, row_h_actual, stroke=1, fill=1)
+        set_fill(BLACK)
+
+        cx = table_x_start
+        # Top y of the cell content (for top-aligned text)
+        first_baseline = items_y - line_h - 1  # first line baseline near top of row
+
+        # S. #  — vertically centered
+        sx = cx
+        sw = cols[0][1]
+        can.drawCentredString(sx + sw / 2, items_y - row_h_actual / 2 - 2, str(i))
+        can.line(cx, items_y, cx, items_y - row_h_actual)
+        cx += sw
+
+        # Description (top-aligned, wrapped)
+        dx = cx
+        dw = cols[1][1]
+        for li, ln in enumerate(desc_lines):
+            can.drawString(dx + 4, first_baseline - li * line_h, ln)
+        can.line(cx, items_y, cx, items_y - row_h_actual)
+        cx += dw
+
+        # Unit — vertically centered
+        ux = cx
+        uw = cols[2][1]
+        can.drawCentredString(ux + uw / 2, items_y - row_h_actual / 2 - 2, str(unit))
+        can.line(cx, items_y, cx, items_y - row_h_actual)
+        cx += uw
+
+        # Qty. — thousands-separated to match house style
+        qx = cx
+        qw = cols[3][1]
+        try:
+            qty_text = f"{int(qty):,}"
+        except (TypeError, ValueError):
+            qty_text = str(qty)
+        can.drawCentredString(qx + qw / 2, items_y - row_h_actual / 2 - 2, qty_text)
+        can.line(cx, items_y, cx, items_y - row_h_actual)
+        cx += qw
+
+        # Unit Price
+        upx = cx
+        upw = cols[4][1]
+        can.drawRightString(upx + upw - 4, items_y - row_h_actual / 2 - 2, f"{price:,.2f}")
+        can.line(cx, items_y, cx, items_y - row_h_actual)
+        cx += upw
+
+        # Total Price
+        tpx = cx
+        tpw = cols[5][1]
+        can.drawRightString(tpx + tpw - 4, items_y - row_h_actual / 2 - 2, f"{total:,.2f}")
+        can.line(cx, items_y, cx, items_y - row_h_actual)
+        cx += tpw
+        can.line(cx, items_y, cx, items_y - row_h_actual)
+
+        items_y -= row_h_actual
 
     # If totals + footer (~210pt) won't fit below the items, break to a new page
     TOTALS_FOOTER_RESERVE = 210
