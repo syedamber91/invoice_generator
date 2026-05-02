@@ -16,6 +16,23 @@ if not os.path.exists(FONT_PATH):
     FONT_PATH = "Arial.ttf"
 
 
+def fmt_money(value):
+    """Render a money amount without lossy rounding.
+
+    Always shows at least 2 decimals; preserves up to 6 decimal places of
+    user-entered precision (trailing zeros beyond the 2nd decimal are
+    trimmed). Integers display as e.g. '5,000.00'."""
+    try:
+        v = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    s = f"{v:,.6f}"
+    int_part, dec_part = s.split('.')
+    dec_part = dec_part.rstrip('0')
+    if len(dec_part) < 2:
+        dec_part = dec_part.ljust(2, '0')
+    return f"{int_part}.{dec_part}"
+
 
 def generate_pdf(items_df, letterhead_bytes, header_info):
     packet = io.BytesIO()
@@ -258,14 +275,14 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         # Unit Price
         upx = cx
         upw = cols[4][1]
-        can.drawRightString(upx + upw - 4, items_y - row_h_actual / 2 - 2, f"{price:,.2f}")
+        can.drawRightString(upx + upw - 4, items_y - row_h_actual / 2 - 2, fmt_money(price))
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += upw
 
         # Total Price
         tpx = cx
         tpw = cols[5][1]
-        can.drawRightString(tpx + tpw - 4, items_y - row_h_actual / 2 - 2, f"{total:,.2f}")
+        can.drawRightString(tpx + tpw - 4, items_y - row_h_actual / 2 - 2, fmt_money(total))
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += tpw
         can.line(cx, items_y, cx, items_y - row_h_actual)
@@ -288,7 +305,7 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
 
     # Row 1: "Grand Total : SAR Only." | amount
     cell(table_x_start, totals_y, table_total_w, row_h,
-         "Grand  Total : SAR Only.", f"{grand_total_excl:,.2f}",
+         "Grand  Total : SAR Only.", fmt_money(grand_total_excl),
          label_w_ratio=0.78, font_size=10, value_bold=True, value_align="right")
     totals_y -= row_h
     # Row 2: company VAT no.  +  "Add V.A.T 15%" label and amount
@@ -308,11 +325,11 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     can.setFont(font_name, 10)
     can.drawString(table_x_start + 4, totals_y - row_h + 4, company_vat)
     can.drawCentredString(table_x_start + sub_w_a + sub_w_b / 2, totals_y - row_h + 4, "Add   V.A.T 15%")
-    can.drawRightString(table_x_start + table_total_w - 4, totals_y - row_h + 4, f"{vat_amount:,.2f}")
+    can.drawRightString(table_x_start + table_total_w - 4, totals_y - row_h + 4, fmt_money(vat_amount))
     totals_y -= row_h
     # Row 3: Net Amount including 15% VAT | net amount
     cell(table_x_start, totals_y, table_total_w, row_h,
-         "Net Amount including 15% VAT", f"{net_amount:,.2f}",
+         "Net Amount including 15% VAT", fmt_money(net_amount),
          label_w_ratio=0.78, font_size=10, value_bold=True, value_align="right")
     totals_y -= row_h
 

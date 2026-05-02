@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 
-from quotation_pdf import generate_pdf
+from quotation_pdf import generate_pdf, fmt_money
 
 st.set_page_config(page_title="Oasis Quotation Builder", layout="wide", page_icon="📄")
 
@@ -124,7 +124,7 @@ items_df = st.data_editor(
         "Product": st.column_config.TextColumn("Description", width="large", required=False),
         "Unit": st.column_config.TextColumn("Unit", width="small", default="pcs"),
         "Quantity": st.column_config.NumberColumn("Qty.", min_value=0, step=1, format="%d", width="small"),
-        "Price": st.column_config.NumberColumn("Unit Price (SAR)", min_value=0.0, step=0.50, format="%.2f"),
+        "Price": st.column_config.NumberColumn("Unit Price (SAR)", min_value=0.0, step=0.0001, format="%.4f", help="Up to 4 decimals; trailing zeros are trimmed in the PDF."),
     },
     hide_index=True,
     use_container_width=True,
@@ -147,9 +147,9 @@ if not valid_items.empty:
     net_amount = grand_total_excl + vat_amount
     s1, s2, s3, s4 = st.columns(4)
     with s1: st.metric("Items", len(valid_items))
-    with s2: st.metric("Subtotal (Excl. VAT)", f"SAR {grand_total_excl:,.2f}")
-    with s3: st.metric("VAT (15%)", f"SAR {vat_amount:,.2f}")
-    with s4: st.metric("Net Total (Incl. VAT)", f"SAR {net_amount:,.2f}")
+    with s2: st.metric("Subtotal (Excl. VAT)", f"SAR {fmt_money(grand_total_excl)}")
+    with s3: st.metric("VAT (15%)", f"SAR {fmt_money(vat_amount)}")
+    with s4: st.metric("Net Total (Incl. VAT)", f"SAR {fmt_money(net_amount)}")
 
 st.divider()
 
