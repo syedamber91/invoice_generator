@@ -17,21 +17,11 @@ if not os.path.exists(FONT_PATH):
 
 
 def fmt_money(value):
-    """Render a money amount without lossy rounding.
-
-    Always shows at least 2 decimals; preserves up to 6 decimal places of
-    user-entered precision (trailing zeros beyond the 2nd decimal are
-    trimmed). Integers display as e.g. '5,000.00'."""
+    """Format money as a thousands-separated value with exactly 2 decimals."""
     try:
-        v = float(value)
+        return f"{float(value):,.2f}"
     except (TypeError, ValueError):
         return str(value)
-    s = f"{v:,.6f}"
-    int_part, dec_part = s.split('.')
-    dec_part = dec_part.rstrip('0')
-    if len(dec_part) < 2:
-        dec_part = dec_part.ljust(2, '0')
-    return f"{int_part}.{dec_part}"
 
 
 def generate_pdf(items_df, letterhead_bytes, header_info):

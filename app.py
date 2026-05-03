@@ -124,7 +124,7 @@ items_df = st.data_editor(
         "Product": st.column_config.TextColumn("Description", width="large", required=False),
         "Unit": st.column_config.TextColumn("Unit", width="small", default="pcs"),
         "Quantity": st.column_config.NumberColumn("Qty.", min_value=0, step=1, format="%d", width="small"),
-        "Price": st.column_config.NumberColumn("Unit Price (SAR)", min_value=0.0, step=0.0001, format="%.4f", help="Up to 4 decimals; trailing zeros are trimmed in the PDF."),
+        "Price": st.column_config.NumberColumn("Unit Price (SAR)", min_value=0.0, step=0.01, format="%.2f"),
     },
     hide_index=True,
     use_container_width=True,
