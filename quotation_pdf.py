@@ -341,7 +341,7 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     footer_y_local[0] -= 4
     write_line(f"Payment Terms: {payment_terms}", color=RED)
     write_line(f"Bank Details:   {bank_name}", color=RED)
-    write_line(f"A/C No.   {account_no}")
+    write_line(f"IBAN   {account_no}")
     footer_y_local[0] -= 22  # blank space between A/C No. and the regards line
     write_line("THANKS & BEST REGARDS", bold=True)
     contact_line = contact_name

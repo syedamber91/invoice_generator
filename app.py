@@ -166,7 +166,7 @@ with f1:
     beneficiary = st.text_input("Beneficiary Name", value="Oasis Cotton Company")
 with f2:
     bank_name = st.text_input("Bank Name", value="ALRAJHI BANK")
-    account_no = st.text_input("A/C No. (IBAN)", value="SA9380000525608010314637")
+    account_no = st.text_input("IBAN", value="SA9380000525608010314637")
     contact_name = st.text_input("Contact Name", value="ADIL MOHAMMED KHAN")
     contact_mobile = st.text_input("Contact Mobile", value="056 658 5168")
     contact_email = st.text_input("Contact Email", value="a.Khan@oasiscottoncompany.com")
