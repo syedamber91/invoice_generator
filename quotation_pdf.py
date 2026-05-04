@@ -140,14 +140,13 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     # ============ ITEMS TABLE ============
     items_y = top_y - 6 * row_h - 14
 
-    # Column widths (sum = 535) — Description widened, surrounding columns trimmed
+    # Column widths (sum = 535) — 5 columns, Description widened
     cols = [
-        ("S. #", 28, "center"),
-        ("Description", 280, "left"),
-        ("Unit", 45, "center"),
-        ("Qty.", 50, "center"),
+        ("S. #", 30, "center"),
+        ("Description", 315, "left"),
+        ("Qty.", 60, "center"),
         ("Unit Price", 60, "right"),
-        ("Total Price", 72, "right"),
+        ("Total Price", 70, "right"),
     ]
     table_x_start = 30
     table_total_w = sum(c[1] for c in cols)
@@ -203,7 +202,6 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     PAGE_BOTTOM_GUARD = 100
     can.setFont(font_name, 9)
     for i, row in enumerate(items_df.itertuples(index=False), start=1):
-        unit = getattr(row, 'Unit', '') or ''
         desc = shape(getattr(row, 'Product', ''))
         qty = getattr(row, 'Quantity', 0) or 0
         price = float(getattr(row, 'Price', 0) or 0)
@@ -226,53 +224,40 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         set_fill(BLACK)
 
         cx = table_x_start
-        # Top y of the cell content (for top-aligned text)
         first_baseline = items_y - line_h - 1  # first line baseline near top of row
 
-        # S. #  — vertically centered
-        sx = cx
+        # S. # — vertically centered
         sw = cols[0][1]
-        can.drawCentredString(sx + sw / 2, items_y - row_h_actual / 2 - 2, str(i))
+        can.drawCentredString(cx + sw / 2, items_y - row_h_actual / 2 - 2, str(i))
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += sw
 
-        # Description (top-aligned, wrapped)
-        dx = cx
+        # Description — top-aligned, wrapped
         dw = cols[1][1]
         for li, ln in enumerate(desc_lines):
-            can.drawString(dx + 4, first_baseline - li * line_h, ln)
+            can.drawString(cx + 4, first_baseline - li * line_h, ln)
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += dw
 
-        # Unit — vertically centered
-        ux = cx
-        uw = cols[2][1]
-        can.drawCentredString(ux + uw / 2, items_y - row_h_actual / 2 - 2, str(unit))
-        can.line(cx, items_y, cx, items_y - row_h_actual)
-        cx += uw
-
-        # Qty. — thousands-separated to match house style
-        qx = cx
-        qw = cols[3][1]
+        # Qty. — thousands-separated
+        qw = cols[2][1]
         try:
             qty_text = f"{int(qty):,}"
         except (TypeError, ValueError):
             qty_text = str(qty)
-        can.drawCentredString(qx + qw / 2, items_y - row_h_actual / 2 - 2, qty_text)
+        can.drawCentredString(cx + qw / 2, items_y - row_h_actual / 2 - 2, qty_text)
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += qw
 
         # Unit Price
-        upx = cx
-        upw = cols[4][1]
-        can.drawRightString(upx + upw - 4, items_y - row_h_actual / 2 - 2, fmt_money(price))
+        upw = cols[3][1]
+        can.drawRightString(cx + upw - 4, items_y - row_h_actual / 2 - 2, fmt_money(price))
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += upw
 
         # Total Price
-        tpx = cx
-        tpw = cols[5][1]
-        can.drawRightString(tpx + tpw - 4, items_y - row_h_actual / 2 - 2, fmt_money(total))
+        tpw = cols[4][1]
+        can.drawRightString(cx + tpw - 4, items_y - row_h_actual / 2 - 2, fmt_money(total))
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += tpw
         can.line(cx, items_y, cx, items_y - row_h_actual)
@@ -348,14 +333,16 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     contact_name = header_info.get("contact_name", "")
     contact_mobile = header_info.get("contact_mobile", "")
     contact_email = header_info.get("contact_email", "")
+    validity = header_info.get("validity", "")
 
     write_line(f"*** DELIVERY : {delivery}", color=RED, bold=True)
+    write_line(f"Validity of Quotation : {validity}", color=RED, bold=True)
     write_line(f"Name   {beneficiary}")
     footer_y_local[0] -= 4
     write_line(f"Payment Terms: {payment_terms}", color=RED)
     write_line(f"Bank Details:   {bank_name}", color=RED)
     write_line(f"A/C No.   {account_no}")
-    footer_y_local[0] -= 4
+    footer_y_local[0] -= 22  # blank space between A/C No. and the regards line
     write_line("THANKS & BEST REGARDS", bold=True)
     contact_line = contact_name
     if contact_mobile:

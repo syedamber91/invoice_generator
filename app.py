@@ -111,18 +111,17 @@ st.divider()
 
 # ============ STEP 3: Items ============
 st.markdown('<div class="step-box"><span class="step-number">3</span><strong>Add Items</strong></div>', unsafe_allow_html=True)
-st.markdown('<div class="quick-tip">💡 Type product description, unit (e.g., pcs, roll), quantity and unit price. Click <strong>+</strong> at the bottom of the table to add a new row, or the trash icon to remove one. Total Price is calculated automatically.</div>', unsafe_allow_html=True)
+st.markdown('<div class="quick-tip">💡 Type product description, quantity and unit price. Click <strong>+</strong> at the bottom of the table to add a new row, or the trash icon to remove one. Total Price is calculated automatically.</div>', unsafe_allow_html=True)
 
 if 'items_df' not in st.session_state:
     st.session_state.items_df = pd.DataFrame(
-        [{"Product": "", "Unit": "pcs", "Quantity": 1, "Price": 0.0}]
+        [{"Product": "", "Quantity": 1, "Price": 0.0}]
     )
 
 items_df = st.data_editor(
     st.session_state.items_df,
     column_config={
         "Product": st.column_config.TextColumn("Description", width="large", required=False),
-        "Unit": st.column_config.TextColumn("Unit", width="small", default="pcs"),
         "Quantity": st.column_config.NumberColumn("Qty.", min_value=0, step=1, format="%d", width="small"),
         "Price": st.column_config.NumberColumn("Unit Price (SAR)", min_value=0.0, step=0.01, format="%.2f"),
     },
@@ -161,6 +160,7 @@ st.caption("These rarely change — set once and forget. They appear at the end 
 f1, f2 = st.columns(2)
 with f1:
     delivery = st.text_input("Delivery", value="2 to 4 Days")
+    validity = st.text_input("Validity of Quotation", value="30 Days")
     payment_terms = st.text_input("Payment Terms", value="50% Advance 50% Upon Delivery")
     company_vat = st.text_input("Company VAT No.", value="3011 400 837 00 003")
     beneficiary = st.text_input("Beneficiary Name", value="Oasis Cotton Company")
@@ -189,6 +189,7 @@ if not valid_items.empty:
                 "attn_title": attn_title,
                 "attn_mobile": attn_mobile,
                 "delivery": delivery,
+                "validity": validity,
                 "payment_terms": payment_terms,
                 "company_vat": company_vat,
                 "beneficiary": beneficiary,
