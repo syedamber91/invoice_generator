@@ -114,10 +114,10 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     y -= row_h
 
     # Field order requested by user:
-    # Q.Ref → REF → Customer Name → Address → VAT # → CR # → Contact → Number
+    # Q.Ref → Date → Customer Name → Address → VAT # → CR # → Contact → Number
     rows = [
         ("Q.Ref",          header_info.get("q_ref", ""),            BLACK),
-        ("REF",            header_info.get("ref", ""),              RED),
+        ("Date",           header_info.get("date", ""),             BLACK),
         ("Customer Name",  header_info.get("customer", ""),         BLACK),
         ("Address",        header_info.get("customer_address", ""), BLACK),
         ("VAT #",          header_info.get("customer_vat", ""),     BLACK),
