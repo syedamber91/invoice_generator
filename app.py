@@ -243,7 +243,7 @@ with st.sidebar:
                 )
                 ad1, ad2 = st.columns(2)
                 with ad1:
-                    if st.button("📋 Duplicate", key="btn_dup_arch", use_container_width=True,
+                    if st.button("📂 Load", key="btn_dup_arch", use_container_width=True,
                                  help="Load this quotation into the editor as a new working copy"):
                         apply_payload(full["payload"])
                         st.toast("Loaded into editor")
