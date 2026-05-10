@@ -26,6 +26,9 @@ DEFAULTS = {
     "subject": "Quotation for Linen Items",
     "enquiry": "PR - Whatsapp Enquiry",
     "customer": "",
+    "customer_address": "",
+    "customer_vat": "",
+    "customer_cr": "",
     "attn_name": "",
     "attn_title": "",
     "attn_mobile": "",
@@ -54,7 +57,8 @@ for _k, _v in DEFAULTS.items():
 # ----------------------------------------------------------------------------
 PAYLOAD_FIELDS = [
     "ref", "q_ref", "date", "subject", "enquiry",
-    "customer", "attn_name", "attn_title", "attn_mobile",
+    "customer", "customer_address", "customer_vat", "customer_cr",
+    "attn_name", "attn_title", "attn_mobile",
     "delivery", "validity", "payment_terms", "company_vat",
     "beneficiary", "bank_name", "account_no",
     "contact_name", "contact_mobile", "contact_email",
@@ -288,11 +292,14 @@ with c1:
     st.text_input("Enquiry Type", key="enquiry", help="How the enquiry was received")
 
 with c2:
-    st.caption("Customer info")
-    st.text_input("TO (Customer)", key="customer", placeholder="e.g., AL KISWAH TOWER HOTEL MAKKAH")
-    st.text_input("Attn — Name", key="attn_name", placeholder="e.g., Mr. Wael Al Malki")
-    st.text_input("Attn — Title", key="attn_title", placeholder="e.g., Purchasing Manager")
-    st.text_input("Attn — Mobile", key="attn_mobile", placeholder="e.g., 059 619 9566")
+    st.caption("Customer info (printed in the quotation header box)")
+    st.text_input("Customer Name", key="customer", placeholder="e.g., AL KISWAH TOWER HOTEL MAKKAH")
+    st.text_input("Customer Address", key="customer_address", placeholder="e.g., King Faisal St, Makkah")
+    st.text_input("Customer VAT #", key="customer_vat", placeholder="e.g., 3000458591000003")
+    st.text_input("Customer CR #", key="customer_cr", placeholder="e.g., 4030274467")
+    st.text_input("Contact Person", key="attn_name", placeholder="e.g., Mr. Wael Al Malki")
+    st.text_input("Contact Title", key="attn_title", placeholder="e.g., Purchasing Manager (not printed on PDF)")
+    st.text_input("Contact Number", key="attn_mobile", placeholder="e.g., 059 619 9566")
 
 st.divider()
 
