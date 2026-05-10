@@ -140,17 +140,18 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     # ============ ITEMS TABLE ============
     items_y = top_y - 6 * row_h - 14
 
-    # Column widths (sum = 535) — 5 columns, Description widened
+    # Column widths (sum = 535) — 6 columns, Item code between S.# and Description
     cols = [
         ("S. #", 30, "center"),
-        ("Description", 315, "left"),
+        ("Item", 70, "center"),
+        ("Description", 245, "left"),
         ("Qty.", 60, "center"),
         ("Unit Price", 60, "right"),
         ("Total Price", 70, "right"),
     ]
     table_x_start = 30
     table_total_w = sum(c[1] for c in cols)
-    desc_w = cols[1][1]
+    desc_w = cols[2][1]
     line_h = 11  # per-line height for wrapped text
 
     from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -232,15 +233,22 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += sw
 
+        # Item code — vertically centered
+        iw = cols[1][1]
+        item_code = str(getattr(row, 'Item', '') or '')
+        can.drawCentredString(cx + iw / 2, items_y - row_h_actual / 2 - 2, item_code)
+        can.line(cx, items_y, cx, items_y - row_h_actual)
+        cx += iw
+
         # Description — top-aligned, wrapped
-        dw = cols[1][1]
+        dw = cols[2][1]
         for li, ln in enumerate(desc_lines):
             can.drawString(cx + 4, first_baseline - li * line_h, ln)
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += dw
 
         # Qty. — thousands-separated
-        qw = cols[2][1]
+        qw = cols[3][1]
         try:
             qty_text = f"{int(qty):,}"
         except (TypeError, ValueError):
@@ -250,13 +258,13 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         cx += qw
 
         # Unit Price
-        upw = cols[3][1]
+        upw = cols[4][1]
         can.drawRightString(cx + upw - 4, items_y - row_h_actual / 2 - 2, fmt_money(price))
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += upw
 
         # Total Price
-        tpw = cols[4][1]
+        tpw = cols[5][1]
         can.drawRightString(cx + tpw - 4, items_y - row_h_actual / 2 - 2, fmt_money(total))
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += tpw

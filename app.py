@@ -17,7 +17,7 @@ st.set_page_config(
 # Session state defaults — every form field has a key so it can be loaded from
 # a draft or an archived quotation by simply writing to st.session_state.
 # ============================================================================
-EMPTY_ITEMS = pd.DataFrame([{"Product": "", "Quantity": 1, "Price": 0.0}])
+EMPTY_ITEMS = pd.DataFrame([{"Item": "", "Product": "", "Quantity": 1, "Price": 0.0}])
 
 DEFAULTS = {
     "ref": "AKT000300/00100-04",
@@ -85,6 +85,13 @@ def apply_payload(payload: dict) -> None:
             st.session_state[f] = val
     items = payload.get("items") or []
     df = pd.DataFrame(items) if items else EMPTY_ITEMS.copy()
+    # Back-compat: older drafts saved before the Item column existed have
+    # rows without it. Fill missing columns with sensible defaults and pin
+    # the column order so the data_editor renders consistently.
+    for col, default in [("Item", ""), ("Product", ""), ("Quantity", 1), ("Price", 0.0)]:
+        if col not in df.columns:
+            df[col] = default
+    df = df[["Item", "Product", "Quantity", "Price"]]
     # Streamlit data_editor caches edit deltas under its own key — clear them
     # so the new DataFrame shows through cleanly.
     st.session_state["items_df"] = df
@@ -308,6 +315,7 @@ st.markdown('<div class="quick-tip">💡 Type product description, quantity and 
 items_df = st.data_editor(
     st.session_state["items_df"],
     column_config={
+        "Item": st.column_config.TextColumn("Item", width="small", required=False, help="Item code or SKU (optional)"),
         "Product": st.column_config.TextColumn("Description", width="large", required=False),
         "Quantity": st.column_config.NumberColumn("Qty.", min_value=0, step=1, format="%d", width="small"),
         "Price": st.column_config.NumberColumn("Unit Price (SAR)", min_value=0.0, step=0.01, format="%.2f"),
