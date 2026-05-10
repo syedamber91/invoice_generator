@@ -95,7 +95,10 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     # Single column box on the LEFT side of the page (bill-style layout).
     # The right side stays empty so the letterhead PDF underneath shows
     # through there.
+    # CONTINUATION_PAGE_TOP_Y mirrors top_y so the letterhead has the same
+    # vertical clearance on subsequent pages as it does on page 1.
     top_y = 660
+    CONTINUATION_PAGE_TOP_Y = top_y
     row_h = 18
     box_x, box_w = 30, 260
 
@@ -211,7 +214,7 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         # Page break check using the *actual* row height
         if items_y - row_h_actual < PAGE_BOTTOM_GUARD:
             can.showPage()
-            items_y = 760
+            items_y = CONTINUATION_PAGE_TOP_Y
             items_y = draw_items_header(items_y)
             can.setFont(font_name, 9)
 
@@ -274,7 +277,7 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     TOTALS_FOOTER_RESERVE = 210
     if items_y - TOTALS_FOOTER_RESERVE < 60:
         can.showPage()
-        items_y = 760
+        items_y = CONTINUATION_PAGE_TOP_Y
 
     # ============ TOTALS ============
     grand_total_excl = (items_df['Quantity'] * items_df['Price']).sum()
