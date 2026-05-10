@@ -1,12 +1,98 @@
 import streamlit as st
 import pandas as pd
+from datetime import date as _date
 
 from quotation_pdf import generate_pdf, fmt_money
+from storage import get_storage
 
 st.set_page_config(page_title="Oasis Quotation Builder", layout="wide", page_icon="📄")
 
 
-# --- Custom CSS (Oasis theme) ---
+# ============================================================================
+# Session state defaults — every form field has a key so it can be loaded from
+# a draft or an archived quotation by simply writing to st.session_state.
+# ============================================================================
+EMPTY_ITEMS = pd.DataFrame([{"Product": "", "Quantity": 1, "Price": 0.0}])
+
+DEFAULTS = {
+    "ref": "AKT000300/00100-04",
+    "q_ref": "300-04",
+    "date": _date.today(),
+    "subject": "Quotation for Linen Items",
+    "enquiry": "PR - Whatsapp Enquiry",
+    "customer": "",
+    "attn_name": "",
+    "attn_title": "",
+    "attn_mobile": "",
+    "delivery": "2 to 4 Days",
+    "validity": "30 Days",
+    "payment_terms": "50% Advance 50% Upon Delivery",
+    "company_vat": "3011 400 837 00 003",
+    "beneficiary": "Oasis Cotton Company",
+    "bank_name": "ALRAJHI BANK",
+    "account_no": "SA9380000525608010314637",
+    "contact_name": "ADIL MOHAMMED KHAN",
+    "contact_mobile": "056 658 5168",
+    "contact_email": "a.Khan@oasiscottoncompany.com",
+    "items_df": EMPTY_ITEMS.copy(),
+    # meta
+    "author": "",
+    "draft_name": "",
+}
+
+for _k, _v in DEFAULTS.items():
+    if _k not in st.session_state:
+        st.session_state[_k] = _v
+
+
+# ----------------------------------------------------------------------------
+# Helpers — collect form into a payload and apply a payload back into widgets.
+# ----------------------------------------------------------------------------
+PAYLOAD_FIELDS = [
+    "ref", "q_ref", "date", "subject", "enquiry",
+    "customer", "attn_name", "attn_title", "attn_mobile",
+    "delivery", "validity", "payment_terms", "company_vat",
+    "beneficiary", "bank_name", "account_no",
+    "contact_name", "contact_mobile", "contact_email",
+]
+
+
+def collect_payload(items_df: pd.DataFrame) -> dict:
+    """Snapshot the current form (header fields + items) into a JSON-safe dict."""
+    payload: dict = {f: st.session_state.get(f, "") for f in PAYLOAD_FIELDS}
+    # Date as ISO string — JSON-safe and easy to parse back
+    d = payload.get("date")
+    if hasattr(d, "isoformat"):
+        payload["date"] = d.isoformat()
+    payload["items"] = items_df.to_dict("records") if items_df is not None else []
+    return payload
+
+
+def apply_payload(payload: dict) -> None:
+    """Push a loaded payload into session_state so widgets repopulate on rerun."""
+    for f in PAYLOAD_FIELDS:
+        if f in payload:
+            val = payload[f]
+            if f == "date" and isinstance(val, str):
+                try:
+                    val = _date.fromisoformat(val)
+                except ValueError:
+                    val = _date.today()
+            st.session_state[f] = val
+    items = payload.get("items") or []
+    df = pd.DataFrame(items) if items else EMPTY_ITEMS.copy()
+    # Streamlit data_editor caches edit deltas under its own key — clear them
+    # so the new DataFrame shows through cleanly.
+    st.session_state["items_df"] = df
+    st.session_state.pop("items_editor", None)
+
+
+storage = get_storage()
+
+
+# ============================================================================
+# Custom CSS (Oasis theme)
+# ============================================================================
 st.markdown("""
 <style>
     :root {
@@ -64,10 +150,126 @@ st.markdown("""
         background-color: #fdfbf7 !important;
         border: 1px dashed #C9A961 !important;
     }
+    section[data-testid="stSidebar"] { background: #f8f9fa !important; border-right: 3px solid #C9A961; }
+    section[data-testid="stSidebar"] * { color: #1a1a2e !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Header ---
+
+# ============================================================================
+# SIDEBAR (top half) — Author + Load draft + Browse archive
+# Save draft button is rendered later (in the second `with st.sidebar:` block)
+# so it can capture the current items DataFrame returned by the data_editor.
+# ============================================================================
+with st.sidebar:
+    st.markdown("### 👤 Your Name")
+    st.text_input(
+        "Author",
+        key="author",
+        placeholder="e.g., Adil",
+        help="Your name is stored alongside drafts and archived PDFs.",
+        label_visibility="collapsed",
+    )
+
+    backend_label = "☁️ Turso" if storage.backend == "turso" else "💾 Local SQLite"
+    st.caption(f"Storage backend: {backend_label}")
+
+    st.divider()
+
+    # ---- Drafts: load / delete ----
+    st.markdown("### 📂 Drafts")
+    drafts = storage.list_drafts()
+    if drafts:
+        opts = [-1] + [d["id"] for d in drafts]
+
+        def _fmt_draft(idx_id: int) -> str:
+            if idx_id == -1:
+                return "— select a draft —"
+            d = next(x for x in drafts if x["id"] == idx_id)
+            tag = f" · {d['author']}" if d["author"] else ""
+            return f"{d['name']}{tag}  ({d['updated_at'][:10]})"
+
+        picked_id = st.selectbox(
+            "Load saved draft",
+            options=opts,
+            format_func=_fmt_draft,
+            key="draft_picker",
+            label_visibility="collapsed",
+        )
+        if picked_id != -1:
+            cl1, cl2 = st.columns(2)
+            with cl1:
+                if st.button("📂 Load", key="btn_load_draft", use_container_width=True):
+                    loaded = storage.load_draft(int(picked_id))
+                    if loaded:
+                        apply_payload(loaded["payload"])
+                        st.session_state["draft_name"] = loaded["name"]
+                        if loaded.get("author"):
+                            st.session_state["author"] = loaded["author"]
+                        st.toast(f"Loaded draft: {loaded['name']}")
+                        st.rerun()
+            with cl2:
+                if st.button("🗑️ Delete", key="btn_del_draft", use_container_width=True):
+                    storage.delete_draft(int(picked_id))
+                    st.toast("Draft deleted")
+                    st.rerun()
+    else:
+        st.caption("No drafts saved yet. Fill the form, then save below.")
+
+    st.divider()
+
+    # ---- Archive: browse / download / duplicate / delete ----
+    st.markdown("### 📚 Archive (generated PDFs)")
+    archives = storage.list_archive()
+    if archives:
+        a_opts = [-1] + [a["id"] for a in archives]
+
+        def _fmt_arch(idx_id: int) -> str:
+            if idx_id == -1:
+                return "— select a quotation —"
+            a = next(x for x in archives if x["id"] == idx_id)
+            ref = a["ref"] or a["q_ref"] or f"#{a['id']}"
+            cust = a["customer"] or "(no customer)"
+            return f"{ref} · {cust}  ({a['created_at'][:10]})"
+
+        picked_arch_id = st.selectbox(
+            "Pick an archived quotation",
+            options=a_opts,
+            format_func=_fmt_arch,
+            key="archive_picker",
+            label_visibility="collapsed",
+        )
+        if picked_arch_id != -1:
+            full = storage.load_archive(int(picked_arch_id))
+            if full:
+                fname = (full["ref"] or full["q_ref"] or f"quotation_{picked_arch_id}").replace("/", "-")
+                st.download_button(
+                    "📥 Download PDF",
+                    data=full["pdf_bytes"],
+                    file_name=f"Quotation_{fname}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    key=f"dl_archive_{picked_arch_id}",
+                )
+                ad1, ad2 = st.columns(2)
+                with ad1:
+                    if st.button("📋 Duplicate", key="btn_dup_arch", use_container_width=True,
+                                 help="Load this quotation into the editor as a new working copy"):
+                        apply_payload(full["payload"])
+                        st.toast("Loaded into editor")
+                        st.rerun()
+                with ad2:
+                    if st.button("🗑️ Delete", key="btn_del_arch", use_container_width=True):
+                        storage.delete_archive(int(picked_arch_id))
+                        st.toast("Archive entry deleted")
+                        st.rerun()
+    else:
+        st.caption("No PDFs archived yet. They'll appear here after you click Generate.")
+
+
+# ============================================================================
+# MAIN — header
+# ============================================================================
 st.markdown("""
 <div class="main-header">
     <h1>🏨 Oasis Cotton Company - Quotation Builder</h1>
@@ -82,18 +284,18 @@ st.markdown('<div class="step-box"><span class="step-number">1</span><strong>Quo
 c1, c2 = st.columns(2)
 with c1:
     st.caption("Reference info (left side of quotation)")
-    ref = st.text_input("REF", value="AKT000300/00100-04", help="Internal reference number")
-    q_ref = st.text_input("Q.Ref", value="300-04", help="Short quotation reference")
-    date = st.date_input("Date")
-    subject = st.text_input("Subject", value="Quotation for Linen Items")
-    enquiry = st.text_input("Enquiry Type", value="PR - Whatsapp Enquiry", help="How the enquiry was received")
+    st.text_input("REF", key="ref", help="Internal reference number")
+    st.text_input("Q.Ref", key="q_ref", help="Short quotation reference")
+    st.date_input("Date", key="date")
+    st.text_input("Subject", key="subject")
+    st.text_input("Enquiry Type", key="enquiry", help="How the enquiry was received")
 
 with c2:
     st.caption("Customer info")
-    customer = st.text_input("TO (Customer)", value="", placeholder="e.g., AL KISWAH TOWER HOTEL MAKKAH")
-    attn_name = st.text_input("Attn — Name", value="", placeholder="e.g., Mr. Wael Al Malki")
-    attn_title = st.text_input("Attn — Title", value="", placeholder="e.g., Purchasing Manager")
-    attn_mobile = st.text_input("Attn — Mobile", value="", placeholder="e.g., 059 619 9566")
+    st.text_input("TO (Customer)", key="customer", placeholder="e.g., AL KISWAH TOWER HOTEL MAKKAH")
+    st.text_input("Attn — Name", key="attn_name", placeholder="e.g., Mr. Wael Al Malki")
+    st.text_input("Attn — Title", key="attn_title", placeholder="e.g., Purchasing Manager")
+    st.text_input("Attn — Mobile", key="attn_mobile", placeholder="e.g., 059 619 9566")
 
 st.divider()
 
@@ -113,13 +315,8 @@ st.divider()
 st.markdown('<div class="step-box"><span class="step-number">3</span><strong>Add Items</strong></div>', unsafe_allow_html=True)
 st.markdown('<div class="quick-tip">💡 Type product description, quantity and unit price. Click <strong>+</strong> at the bottom of the table to add a new row, or the trash icon to remove one. Total Price is calculated automatically.</div>', unsafe_allow_html=True)
 
-if 'items_df' not in st.session_state:
-    st.session_state.items_df = pd.DataFrame(
-        [{"Product": "", "Quantity": 1, "Price": 0.0}]
-    )
-
 items_df = st.data_editor(
-    st.session_state.items_df,
+    st.session_state["items_df"],
     column_config={
         "Product": st.column_config.TextColumn("Description", width="large", required=False),
         "Quantity": st.column_config.NumberColumn("Qty.", min_value=0, step=1, format="%d", width="small"),
@@ -131,6 +328,10 @@ items_df = st.data_editor(
     key="items_editor",
     height=320,
 )
+
+# Keep session_state.items_df in sync with the editor's current state so
+# Save Draft (rendered later in the sidebar) captures the latest rows.
+st.session_state["items_df"] = items_df
 
 valid_items = items_df.copy()
 valid_items = valid_items[
@@ -159,53 +360,88 @@ st.caption("These rarely change — set once and forget. They appear at the end 
 
 f1, f2 = st.columns(2)
 with f1:
-    delivery = st.text_input("Delivery", value="2 to 4 Days")
-    validity = st.text_input("Validity of Quotation", value="30 Days")
-    payment_terms = st.text_input("Payment Terms", value="50% Advance 50% Upon Delivery")
-    company_vat = st.text_input("Company VAT No.", value="3011 400 837 00 003")
-    beneficiary = st.text_input("Beneficiary Name", value="Oasis Cotton Company")
+    st.text_input("Delivery", key="delivery")
+    st.text_input("Validity of Quotation", key="validity")
+    st.text_input("Payment Terms", key="payment_terms")
+    st.text_input("Company VAT No.", key="company_vat")
+    st.text_input("Beneficiary Name", key="beneficiary")
 with f2:
-    bank_name = st.text_input("Bank Name", value="ALRAJHI BANK")
-    account_no = st.text_input("IBAN", value="SA9380000525608010314637")
-    contact_name = st.text_input("Contact Name", value="ADIL MOHAMMED KHAN")
-    contact_mobile = st.text_input("Contact Mobile", value="056 658 5168")
-    contact_email = st.text_input("Contact Email", value="a.Khan@oasiscottoncompany.com")
+    st.text_input("Bank Name", key="bank_name")
+    st.text_input("IBAN", key="account_no")
+    st.text_input("Contact Name", key="contact_name")
+    st.text_input("Contact Mobile", key="contact_mobile")
+    st.text_input("Contact Email", key="contact_email")
 
 st.divider()
 
 
-# ============ Generate ============
+# ============================================================================
+# SIDEBAR (bottom half) — Save current as draft
+# Rendered after the form so it captures the freshest items_df.
+# ============================================================================
+with st.sidebar:
+    st.divider()
+    st.markdown("### 💾 Save current as draft")
+    st.text_input(
+        "Draft name",
+        key="draft_name",
+        placeholder="e.g., AL KISWAH v2",
+        label_visibility="collapsed",
+    )
+    if st.button("💾 Save draft", type="primary", use_container_width=True, key="btn_save_draft"):
+        name = st.session_state.get("draft_name", "").strip()
+        if not name:
+            st.warning("Enter a draft name first.")
+        else:
+            payload = collect_payload(items_df)
+            storage.save_draft(name, st.session_state.get("author", "").strip(), payload)
+            st.toast(f"Saved draft: {name}")
+            st.rerun()
+
+
+# ============================================================================
+# Generate PDF — also writes the rendered PDF + payload to the archive
+# ============================================================================
+def _build_header_info(payload: dict) -> dict:
+    """Convert a saved payload into the kwargs generate_pdf expects.
+
+    Only difference: date is formatted DD/MM/YYYY for the printed header."""
+    d = payload.get("date")
+    if isinstance(d, str):
+        try:
+            d = _date.fromisoformat(d)
+        except ValueError:
+            d = _date.today()
+    elif d is None:
+        d = _date.today()
+    out = {f: payload.get(f, "") for f in PAYLOAD_FIELDS}
+    out["date"] = d.strftime("%d/%m/%Y")
+    return out
+
+
 if not valid_items.empty:
     if letterhead_file:
         if st.button("🚀 Generate PDF Quotation", type="primary"):
-            header_info = {
-                "ref": ref,
-                "q_ref": q_ref,
-                "date": date.strftime("%d/%m/%Y"),
-                "subject": subject,
-                "enquiry": enquiry,
-                "customer": customer,
-                "attn_name": attn_name,
-                "attn_title": attn_title,
-                "attn_mobile": attn_mobile,
-                "delivery": delivery,
-                "validity": validity,
-                "payment_terms": payment_terms,
-                "company_vat": company_vat,
-                "beneficiary": beneficiary,
-                "bank_name": bank_name,
-                "account_no": account_no,
-                "contact_name": contact_name,
-                "contact_mobile": contact_mobile,
-                "contact_email": contact_email,
-            }
+            payload = collect_payload(valid_items)
+            header_info = _build_header_info(payload)
             pdf_bytes = generate_pdf(valid_items, letterhead_file, header_info)
             if pdf_bytes:
-                st.success("✅ PDF generated")
+                # Persist the rendered PDF and the form snapshot so it can be
+                # retrieved later from the Archive panel in the sidebar.
+                storage.archive_pdf(
+                    ref=payload.get("ref", ""),
+                    q_ref=payload.get("q_ref", ""),
+                    customer=payload.get("customer", ""),
+                    author=st.session_state.get("author", "").strip(),
+                    payload=payload,
+                    pdf_bytes=pdf_bytes,
+                )
+                st.success("✅ PDF generated and saved to Archive")
+                fname = (payload.get("q_ref") or payload.get("ref") or "Quotation").replace("/", "-")
                 st.download_button(
                     "📥 Download PDF",
                     data=pdf_bytes,
-                    file_name=f"Quotation_{q_ref or ref}.pdf",
+                    file_name=f"Quotation_{fname}.pdf",
                     mime="application/pdf",
                 )
             else:
