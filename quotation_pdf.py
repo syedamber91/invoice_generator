@@ -92,53 +92,45 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         can.rect(x, y - h, w, h, stroke=1, fill=1)
 
     # ============ TOP REFERENCE GRID ============
-    top_y = 640
+    # Single column box on the right side of the page (matches client's
+    # bill-style layout). The left side stays empty so the letterhead PDF
+    # underneath shows through.
+    top_y = 660
     row_h = 18
-    left_x, left_w = 30, 250
-    right_x, right_w = 305, 260
+    box_x, box_w = 305, 260
 
-    # Left column: REF / TO / Attn / [Title] / Mob / Subject (6 rows)
-    rows_left = [
-        ("REF", header_info.get("ref", ""), RED),
-        ("TO", header_info.get("customer", ""), BLACK),
-        ("Attn", header_info.get("attn_name", ""), BLACK),
-        ("", header_info.get("attn_title", ""), BLACK),
-        ("Mob", header_info.get("attn_mobile", ""), BLACK),
-        ("Subject", header_info.get("subject", ""), BLACK),
-    ]
-
-    y = top_y
-    for label, value, color in rows_left:
-        cell(left_x, y, left_w, row_h, label, value, value_color=color, value_bold=(color == RED))
-        y -= row_h
-
-    # Right column header: "QUOTATION" red bold title spanning full right block
+    # "QUOTATION" title (red bold) at the top of the box
     y = top_y
     set_stroke(GREY_BORDER)
     can.setLineWidth(0.5)
     set_fill((1, 1, 1))
-    can.rect(right_x, y - row_h, right_w, row_h, stroke=1, fill=1)
+    can.rect(box_x, y - row_h, box_w, row_h, stroke=1, fill=1)
     set_fill(RED)
     can.setFont('Helvetica-Bold', 16)
-    can.drawCentredString(right_x + right_w / 2, y - row_h + 5, "QUOTATION")
+    can.drawCentredString(box_x + box_w / 2, y - row_h + 5, "QUOTATION")
     y -= row_h
 
-    # Then Q.Ref / Enquiry / Date
-    rows_right = [
-        ("Q.Ref", header_info.get("q_ref", "")),
-        ("", header_info.get("enquiry", "")),
-        ("Date", header_info.get("date", "")),
+    # All header fields stacked vertically
+    rows = [
+        ("REF",     header_info.get("ref", ""),         RED),
+        ("Q.Ref",   header_info.get("q_ref", ""),       BLACK),
+        ("Date",    header_info.get("date", ""),        BLACK),
+        ("Subject", header_info.get("subject", ""),     BLACK),
+        ("Enquiry", header_info.get("enquiry", ""),     BLACK),
+        ("TO",      header_info.get("customer", ""),    BLACK),
+        ("Attn",    header_info.get("attn_name", ""),   BLACK),
+        ("",        header_info.get("attn_title", ""),  BLACK),
+        ("Mob",     header_info.get("attn_mobile", ""), BLACK),
     ]
-    for label, value in rows_right:
-        cell(right_x, y, right_w, row_h, label, value)
-        y -= row_h
-    # Pad remaining rows on right side with empty cells to match left height
-    while y > top_y - 6 * row_h:
-        empty_cell(right_x, y, right_w, row_h)
+    for label, value, color in rows:
+        cell(box_x, y, box_w, row_h, label, value,
+             value_color=color, value_bold=(color == RED))
         y -= row_h
 
+    header_box_bottom = y  # bottom edge of the header box, used to position items below
+
     # ============ ITEMS TABLE ============
-    items_y = top_y - 6 * row_h - 14
+    items_y = header_box_bottom - 14
 
     # Column widths (sum = 535) — 6 columns, Item code between S.# and Description
     cols = [
