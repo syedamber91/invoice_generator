@@ -41,7 +41,6 @@ DEFAULTS = {
     "contact_email": "a.Khan@oasiscottoncompany.com",
     "items_df": EMPTY_ITEMS.copy(),
     # meta
-    "author": "",
     "draft_name": "",
 }
 
@@ -162,24 +161,13 @@ st.markdown("""
 
 
 # ============================================================================
-# SIDEBAR (top half) — Author + Load draft + Browse archive
+# SIDEBAR (top half) — Load draft + Browse archive
 # Save draft button is rendered later (in the second `with st.sidebar:` block)
 # so it can capture the current items DataFrame returned by the data_editor.
 # ============================================================================
 with st.sidebar:
-    st.markdown("### 👤 Your Name")
-    st.text_input(
-        "Author",
-        key="author",
-        placeholder="e.g., Adil",
-        help="Your name is stored alongside drafts and archived PDFs.",
-        label_visibility="collapsed",
-    )
-
     backend_label = "☁️ Turso" if storage.backend == "turso" else "💾 Local SQLite"
     st.caption(f"Storage backend: {backend_label}")
-
-    st.divider()
 
     # ---- Drafts: load / delete ----
     st.markdown("### 📂 Drafts")
@@ -191,8 +179,7 @@ with st.sidebar:
             if idx_id == -1:
                 return "— select a draft —"
             d = next(x for x in drafts if x["id"] == idx_id)
-            tag = f" · {d['author']}" if d["author"] else ""
-            return f"{d['name']}{tag}  ({d['updated_at'][:10]})"
+            return f"{d['name']}  ({d['updated_at'][:10]})"
 
         picked_id = st.selectbox(
             "Load saved draft",
@@ -209,13 +196,6 @@ with st.sidebar:
                     if loaded:
                         apply_payload(loaded["payload"])
                         st.session_state["draft_name"] = loaded["name"]
-                        # Don't overwrite the current author here — the "author"
-                        # text_input has already rendered above this button, so
-                        # Streamlit forbids writing to its session_state key.
-                        # UX-wise this is also correct: the current user keeps
-                        # their identity and saving creates their own copy
-                        # (drafts are unique on (name, author), so the original
-                        # author's draft is preserved).
                         st.toast(f"Loaded draft: {loaded['name']}")
                         st.rerun()
             with cl2:
@@ -404,7 +384,7 @@ with st.sidebar:
             st.warning("Enter a draft name first.")
         else:
             payload = collect_payload(items_df)
-            storage.save_draft(name, st.session_state.get("author", "").strip(), payload)
+            storage.save_draft(name, payload)
             st.toast(f"Saved draft: {name}")
             st.rerun()
 
@@ -442,7 +422,6 @@ if not valid_items.empty:
                     ref=payload.get("ref", ""),
                     q_ref=payload.get("q_ref", ""),
                     customer=payload.get("customer", ""),
-                    author=st.session_state.get("author", "").strip(),
                     payload=payload,
                     pdf_bytes=pdf_bytes,
                 )

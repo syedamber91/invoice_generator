@@ -123,13 +123,19 @@ class Storage:
 
     # ----- drafts -----
 
-    def save_draft(self, name: str, author: str, payload: dict) -> int:
-        """Insert a new draft, or update the existing one with the same (name, author)."""
+    def save_draft(self, name: str, payload: dict) -> int:
+        """Insert a new draft, or update the existing one with the same name.
+
+        Drafts are looked up by name only; whoever opens a draft can save over
+        it. Existing rows in the database may still have an ``author`` value
+        from previous versions of the app — those are preserved on update but
+        no longer surfaced anywhere.
+        """
         now = _utc_now_iso()
         payload_json = json.dumps(payload, default=str)
         existing = self.query(
-            "SELECT id FROM drafts WHERE name = ? AND COALESCE(author, '') = COALESCE(?, '')",
-            (name, author or ""),
+            "SELECT id FROM drafts WHERE name = ? ORDER BY updated_at DESC LIMIT 1",
+            (name,),
         )
         if existing:
             draft_id = int(existing[0][0])
@@ -140,45 +146,45 @@ class Storage:
             return draft_id
         return int(self.execute(
             "INSERT INTO drafts (name, author, payload_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-            (name, author, payload_json, now, now),
+            (name, "", payload_json, now, now),
         ) or 0)
 
     def list_drafts(self) -> list[dict]:
         rows = self.query(
-            "SELECT id, name, author, updated_at FROM drafts ORDER BY updated_at DESC"
+            "SELECT id, name, updated_at FROM drafts ORDER BY updated_at DESC"
         )
         return [
-            {"id": int(r[0]), "name": r[1], "author": r[2] or "", "updated_at": r[3]}
+            {"id": int(r[0]), "name": r[1], "updated_at": r[2]}
             for r in rows
         ]
 
     def load_draft(self, draft_id: int) -> dict | None:
         rows = self.query(
-            "SELECT name, author, payload_json FROM drafts WHERE id = ?", (draft_id,)
+            "SELECT name, payload_json FROM drafts WHERE id = ?", (draft_id,)
         )
         if not rows:
             return None
-        name, author, payload_json = rows[0]
-        return {"name": name, "author": author or "", "payload": json.loads(payload_json)}
+        name, payload_json = rows[0]
+        return {"name": name, "payload": json.loads(payload_json)}
 
     def delete_draft(self, draft_id: int) -> None:
         self.execute("DELETE FROM drafts WHERE id = ?", (draft_id,))
 
     # ----- archive -----
 
-    def archive_pdf(self, ref: str, q_ref: str, customer: str, author: str,
+    def archive_pdf(self, ref: str, q_ref: str, customer: str,
                     payload: dict, pdf_bytes: bytes) -> int:
         return int(self.execute(
             """
             INSERT INTO archive (ref, q_ref, customer, author, payload_json, pdf_blob, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (ref, q_ref, customer, author, json.dumps(payload, default=str), pdf_bytes, _utc_now_iso()),
+            (ref, q_ref, customer, "", json.dumps(payload, default=str), pdf_bytes, _utc_now_iso()),
         ) or 0)
 
     def list_archive(self) -> list[dict]:
         rows = self.query(
-            "SELECT id, ref, q_ref, customer, author, created_at FROM archive ORDER BY created_at DESC"
+            "SELECT id, ref, q_ref, customer, created_at FROM archive ORDER BY created_at DESC"
         )
         return [
             {
@@ -186,25 +192,23 @@ class Storage:
                 "ref": r[1] or "",
                 "q_ref": r[2] or "",
                 "customer": r[3] or "",
-                "author": r[4] or "",
-                "created_at": r[5],
+                "created_at": r[4],
             }
             for r in rows
         ]
 
     def load_archive(self, archive_id: int) -> dict | None:
         rows = self.query(
-            "SELECT ref, q_ref, customer, author, payload_json, pdf_blob, created_at FROM archive WHERE id = ?",
+            "SELECT ref, q_ref, customer, payload_json, pdf_blob, created_at FROM archive WHERE id = ?",
             (archive_id,),
         )
         if not rows:
             return None
-        ref, q_ref, customer, author, payload_json, pdf_blob, created_at = rows[0]
+        ref, q_ref, customer, payload_json, pdf_blob, created_at = rows[0]
         return {
             "ref": ref or "",
             "q_ref": q_ref or "",
             "customer": customer or "",
-            "author": author or "",
             "payload": json.loads(payload_json),
             "pdf_bytes": bytes(pdf_blob),
             "created_at": created_at,
