@@ -209,8 +209,13 @@ with st.sidebar:
                     if loaded:
                         apply_payload(loaded["payload"])
                         st.session_state["draft_name"] = loaded["name"]
-                        if loaded.get("author"):
-                            st.session_state["author"] = loaded["author"]
+                        # Don't overwrite the current author here — the "author"
+                        # text_input has already rendered above this button, so
+                        # Streamlit forbids writing to its session_state key.
+                        # UX-wise this is also correct: the current user keeps
+                        # their identity and saving creates their own copy
+                        # (drafts are unique on (name, author), so the original
+                        # author's draft is preserved).
                         st.toast(f"Loaded draft: {loaded['name']}")
                         st.rerun()
             with cl2:
