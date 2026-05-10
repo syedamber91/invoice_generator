@@ -57,6 +57,11 @@ class Storage:
         token = _secret("TURSO_AUTH_TOKEN")
 
         if url and token:
+            # libsql-client picks WebSocket transport for libsql:// URLs, which
+            # Streamlit Cloud rejects with WSServerHandshakeError. Rewriting
+            # the scheme to https:// switches the same client to Hrana-over-HTTP.
+            if url.startswith("libsql://"):
+                url = "https://" + url[len("libsql://"):]
             from libsql_client import create_client_sync  # type: ignore
             self._turso = create_client_sync(url=url, auth_token=token)
             self.backend = "turso"
