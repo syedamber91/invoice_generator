@@ -92,12 +92,12 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         can.rect(x, y - h, w, h, stroke=1, fill=1)
 
     # ============ TOP REFERENCE GRID ============
-    # Single column box on the right side of the page (matches client's
-    # bill-style layout). The left side stays empty so the letterhead PDF
-    # underneath shows through.
+    # Single column box on the LEFT side of the page (bill-style layout).
+    # The right side stays empty so the letterhead PDF underneath shows
+    # through there.
     top_y = 660
     row_h = 18
-    box_x, box_w = 305, 260
+    box_x, box_w = 30, 260
 
     # "QUOTATION" title (red bold) at the top of the box
     y = top_y
@@ -110,17 +110,17 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     can.drawCentredString(box_x + box_w / 2, y - row_h + 5, "QUOTATION")
     y -= row_h
 
-    # All header fields stacked vertically
+    # Field order requested by user:
+    # Q.Ref → REF → Customer Name → Address → VAT # → CR # → Contact → Number
     rows = [
-        ("REF",     header_info.get("ref", ""),         RED),
-        ("Q.Ref",   header_info.get("q_ref", ""),       BLACK),
-        ("Date",    header_info.get("date", ""),        BLACK),
-        ("Subject", header_info.get("subject", ""),     BLACK),
-        ("Enquiry", header_info.get("enquiry", ""),     BLACK),
-        ("TO",      header_info.get("customer", ""),    BLACK),
-        ("Attn",    header_info.get("attn_name", ""),   BLACK),
-        ("",        header_info.get("attn_title", ""),  BLACK),
-        ("Mob",     header_info.get("attn_mobile", ""), BLACK),
+        ("Q.Ref",          header_info.get("q_ref", ""),            BLACK),
+        ("REF",            header_info.get("ref", ""),              RED),
+        ("Customer Name",  header_info.get("customer", ""),         BLACK),
+        ("Address",        header_info.get("customer_address", ""), BLACK),
+        ("VAT #",          header_info.get("customer_vat", ""),     BLACK),
+        ("CR #",           header_info.get("customer_cr", ""),      BLACK),
+        ("Contact Person", header_info.get("attn_name", ""),        BLACK),
+        ("Contact #",      header_info.get("attn_mobile", ""),      BLACK),
     ]
     for label, value, color in rows:
         cell(box_x, y, box_w, row_h, label, value,
