@@ -5,7 +5,12 @@ from datetime import date as _date
 from quotation_pdf import generate_pdf, fmt_money
 from storage import get_storage
 
-st.set_page_config(page_title="Oasis Quotation Builder", layout="wide", page_icon="📄")
+st.set_page_config(
+    page_title="Oasis Quotation Builder",
+    layout="wide",
+    page_icon="📄",
+    initial_sidebar_state="collapsed",
+)
 
 
 # ============================================================================
