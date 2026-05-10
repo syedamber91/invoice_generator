@@ -333,10 +333,10 @@ items_df = st.data_editor(
     key="items_editor",
     height=320,
 )
-
-# Keep session_state.items_df in sync with the editor's current state so
-# Save Draft (rendered later in the sidebar) captures the latest rows.
-st.session_state["items_df"] = items_df
+# Don't write items_df back into session_state["items_df"] here — the editor
+# stores edits as a delta against its input, so mutating the input on every
+# rerun causes cell values to drop. session_state["items_df"] is only updated
+# when we explicitly want to reset the rows (apply_payload on draft load).
 
 valid_items = items_df.copy()
 valid_items = valid_items[
