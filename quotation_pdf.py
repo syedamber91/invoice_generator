@@ -232,15 +232,12 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += sw
 
-        # Item code — vertically centered (Description stays top-aligned).
-        # When the Description wraps to many lines, the row grows tall and
-        # we want the Item text to sit in the middle rather than stick to
-        # the top. Each line is still horizontally centered.
+        # Item code — top-aligned, wrapped, each line horizontally centered
+        # (matches Description wrap behaviour so long codes don't overflow
+        # into the next column).
         iw = cols[1][1]
-        item_block_h = len(item_lines) * line_h
-        item_first_baseline = items_y - (row_h_actual - item_block_h) / 2 - line_h + 3
         for li, ln in enumerate(item_lines):
-            can.drawCentredString(cx + iw / 2, item_first_baseline - li * line_h, ln)
+            can.drawCentredString(cx + iw / 2, first_baseline - li * line_h, ln)
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += iw
 
