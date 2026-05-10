@@ -200,9 +200,13 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         price = float(getattr(row, 'Price', 0) or 0)
         total = qty * price
 
-        # Wrap the description and grow row height to fit
+        # Wrap both Item code and Description; row height grows to fit the
+        # taller of the two (or the default row_h, whichever is largest).
+        item_code = str(getattr(row, 'Item', '') or '')
+        item_lines = wrap_to_width(item_code, font_name, 9, cols[1][1])
         desc_lines = wrap_to_width(desc, font_name, 9, desc_w)
-        row_h_actual = max(row_h, line_h * len(desc_lines) + 6)
+        max_lines = max(len(item_lines), len(desc_lines))
+        row_h_actual = max(row_h, line_h * max_lines + 6)
 
         # Page break check using the *actual* row height
         if items_y - row_h_actual < PAGE_BOTTOM_GUARD:
@@ -225,10 +229,12 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += sw
 
-        # Item code — vertically centered
+        # Item code — top-aligned, wrapped, each line horizontally centered
+        # (matches Description wrap behaviour so long codes don't overflow
+        # into the next column).
         iw = cols[1][1]
-        item_code = str(getattr(row, 'Item', '') or '')
-        can.drawCentredString(cx + iw / 2, items_y - row_h_actual / 2 - 2, item_code)
+        for li, ln in enumerate(item_lines):
+            can.drawCentredString(cx + iw / 2, first_baseline - li * line_h, ln)
         can.line(cx, items_y, cx, items_y - row_h_actual)
         cx += iw
 
