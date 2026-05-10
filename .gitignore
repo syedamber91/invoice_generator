@@ -2,3 +2,8 @@ venv/
 __pycache__/
 .DS_Store
 *.pyc
+
+# Local SQLite store for drafts/archive (use Turso for cloud persistence)
+quotation_store.db
+quotation_store.db-*
+.streamlit/secrets.toml
