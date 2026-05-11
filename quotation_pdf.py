@@ -195,7 +195,12 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     items_y = draw_items_header(items_y)
 
     # Item rows
-    PAGE_BOTTOM_GUARD = 100
+    # BOTTOM_LETTERHEAD_ZONE: pixels reserved at the bottom of every page
+    # for the letterhead's bottom band (address line + QR code). Nothing
+    # the script draws — items, totals, footer text — may extend below
+    # this line, otherwise it covers the QR/address content underneath.
+    BOTTOM_LETTERHEAD_ZONE = 130
+    PAGE_BOTTOM_GUARD = BOTTOM_LETTERHEAD_ZONE
     can.setFont(font_name, 9)
     for i, row in enumerate(items_df.itertuples(index=False), start=1):
         desc = shape(getattr(row, 'Product', ''))
@@ -274,8 +279,10 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         items_y -= row_h_actual
 
     # If totals + footer (~210pt) won't fit below the items, break to a new page
-    TOTALS_FOOTER_RESERVE = 210
-    if items_y - TOTALS_FOOTER_RESERVE < 60:
+    # Totals (~60pt) + Footer text (~152pt of write_line gaps + 22pt lead-in)
+    # = ~234pt below items_y. Reserve 240 to give a small safety buffer.
+    TOTALS_FOOTER_RESERVE = 240
+    if items_y - TOTALS_FOOTER_RESERVE < BOTTOM_LETTERHEAD_ZONE:
         can.showPage()
         items_y = CONTINUATION_PAGE_TOP_Y
 
