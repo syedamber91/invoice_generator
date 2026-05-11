@@ -95,9 +95,13 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     # Single column box on the LEFT side of the page (bill-style layout).
     # The right side stays empty so the letterhead PDF underneath shows
     # through there.
-    # CONTINUATION_PAGE_TOP_Y mirrors top_y so the letterhead has the same
-    # vertical clearance on subsequent pages as it does on page 1.
-    top_y = 660
+    # TOP_LETTERHEAD_ZONE: pixels reserved at the top of every page for the
+    # letterhead's header band (logo + company name + Arabic text). Nothing
+    # the script draws may extend above this line, otherwise the logo gets
+    # covered. Matches the BOTTOM_LETTERHEAD_ZONE pattern for symmetry.
+    TOP_LETTERHEAD_ZONE = 200
+    PAGE_HEIGHT = 842  # A4 in points
+    top_y = PAGE_HEIGHT - TOP_LETTERHEAD_ZONE  # = 642
     CONTINUATION_PAGE_TOP_Y = top_y
     row_h = 18
     box_x, box_w = 30, 260
