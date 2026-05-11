@@ -99,9 +99,9 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     # letterhead's header band (logo + company name + Arabic text). Nothing
     # the script draws may extend above this line, otherwise the logo gets
     # covered. Matches the BOTTOM_LETTERHEAD_ZONE pattern for symmetry.
-    TOP_LETTERHEAD_ZONE = 200
+    TOP_LETTERHEAD_ZONE = 170
     PAGE_HEIGHT = 842  # A4 in points
-    top_y = PAGE_HEIGHT - TOP_LETTERHEAD_ZONE  # = 642
+    top_y = PAGE_HEIGHT - TOP_LETTERHEAD_ZONE  # = 672
     CONTINUATION_PAGE_TOP_Y = top_y
     row_h = 18
     box_x, box_w = 30, 260
