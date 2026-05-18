@@ -91,6 +91,34 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         set_fill(fill)
         can.rect(x, y - h, w, h, stroke=1, fill=1)
 
+    from reportlab.pdfbase.pdfmetrics import stringWidth
+
+    def wrap_to_width(text, font, size, max_w, padding=8):
+        """Greedy word-wrap: returns lines that fit within max_w (minus padding)."""
+        avail = max_w - padding
+        if not text:
+            return [""]
+        words = str(text).split(' ')
+        lines, current = [], ""
+        for word in words:
+            candidate = (current + " " + word).strip() if current else word
+            if stringWidth(candidate, font, size) <= avail:
+                current = candidate
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+                # Hard-break very long single words
+                while stringWidth(current, font, size) > avail and len(current) > 1:
+                    cut = len(current)
+                    while cut > 1 and stringWidth(current[:cut], font, size) > avail:
+                        cut -= 1
+                    lines.append(current[:cut])
+                    current = current[cut:]
+        if current:
+            lines.append(current)
+        return lines or [""]
+
     # ============ TOP REFERENCE GRID ============
     # Single column box on the LEFT side of the page (bill-style layout).
     # The right side stays empty so the letterhead PDF underneath shows
@@ -129,10 +157,39 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         ("Contact Person", header_info.get("attn_name", ""),        BLACK),
         ("Contact #",      header_info.get("attn_mobile", ""),      BLACK),
     ]
+    # Word-wrap any overflowing value so long fields (e.g. Address) stay
+    # inside the value column instead of bleeding past the right edge.
+    label_w_ratio = 0.35
+    label_w = box_w * label_w_ratio
+    value_w = box_w - label_w
+    line_h_hdr = 11
     for label, value, color in rows:
-        cell(box_x, y, box_w, row_h, label, value,
-             value_color=color, value_bold=(color == RED))
-        y -= row_h
+        v_shaped = shape(value)
+        lines = wrap_to_width(v_shaped, font_name, 9, value_w)
+        n = max(1, len(lines))
+        this_row_h = max(row_h, line_h_hdr * n + 6)
+
+        set_stroke(GREY_BORDER)
+        can.setLineWidth(0.5)
+        set_fill(GREY_BG)
+        can.rect(box_x, y - this_row_h, label_w, this_row_h, stroke=1, fill=1)
+        set_fill((1, 1, 1))
+        can.rect(box_x + label_w, y - this_row_h, value_w, this_row_h, stroke=1, fill=1)
+
+        # Label baseline aligned with the first (top) value line so multi-line
+        # rows read naturally with the label at the top.
+        set_fill(BLACK)
+        can.setFont(font_name, 9)
+        first_baseline = y - this_row_h + 4 + (n - 1) * line_h_hdr
+        can.drawString(box_x + 4, first_baseline, label)
+
+        set_fill(color)
+        can.setFont(font_name, 9 + (1 if color == RED else 0))
+        for i, ln in enumerate(lines):
+            baseline = y - this_row_h + 4 + (n - 1 - i) * line_h_hdr
+            can.drawString(box_x + label_w + 4, baseline, ln)
+
+        y -= this_row_h
 
     header_box_bottom = y  # bottom edge of the header box, used to position items below
 
@@ -152,34 +209,6 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     table_total_w = sum(c[1] for c in cols)
     desc_w = cols[2][1]
     line_h = 11  # per-line height for wrapped text
-
-    from reportlab.pdfbase.pdfmetrics import stringWidth
-
-    def wrap_to_width(text, font, size, max_w, padding=8):
-        """Greedy word-wrap: returns lines that fit within max_w (minus padding)."""
-        avail = max_w - padding
-        if not text:
-            return [""]
-        words = text.split(' ')
-        lines, current = [], ""
-        for word in words:
-            candidate = (current + " " + word).strip() if current else word
-            if stringWidth(candidate, font, size) <= avail:
-                current = candidate
-            else:
-                if current:
-                    lines.append(current)
-                current = word
-                # Hard-break very long single words
-                while stringWidth(current, font, size) > avail and len(current) > 1:
-                    cut = len(current)
-                    while cut > 1 and stringWidth(current[:cut], font, size) > avail:
-                        cut -= 1
-                    lines.append(current[:cut])
-                    current = current[cut:]
-        if current:
-            lines.append(current)
-        return lines or [""]
 
     def draw_items_header(y):
         set_stroke(GREY_BORDER)
