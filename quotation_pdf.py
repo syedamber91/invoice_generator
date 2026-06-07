@@ -24,6 +24,51 @@ def fmt_money(value):
         return str(value)
 
 
+def _probe_top_letterhead_zone(letterhead_bytes, page_height, default=170, padding=22):
+    """Find how far down the letterhead's top band extends and reserve enough
+    space above it so drawn content doesn't overlap the logo.
+
+    Returns the height (in PDF points) to reserve at the top of every page.
+    Falls back to ``default`` if the letterhead can't be probed.
+    """
+    if not letterhead_bytes:
+        return default
+    try:
+        import fitz  # PyMuPDF
+    except ImportError:
+        return default
+    try:
+        doc = fitz.open(stream=letterhead_bytes, filetype="pdf")
+        page = doc[0]
+        # Header band: element must START in the top ~25% AND not extend more
+        # than ~30% down the page. That filters out large body / background
+        # images that happen to begin near the top but span the whole page.
+        start_max = 200.0   # absolute pt from top
+        end_max = 260.0
+        lowest = 0.0
+        for img in page.get_images(full=True):
+            for r in page.get_image_rects(img[0]):
+                if r.y0 < start_max and r.y1 < end_max:
+                    lowest = max(lowest, r.y1)
+        for blk in page.get_text("blocks"):
+            y0, y1 = blk[1], blk[3]
+            if y0 < start_max and y1 < end_max:
+                lowest = max(lowest, y1)
+        for d in page.get_drawings():
+            r = d.get("rect")
+            if r is not None and r.y0 < start_max and r.y1 < end_max:
+                lowest = max(lowest, r.y1)
+        if lowest <= 0:
+            return default
+        # Convert "from-top" Y back to a top-reserve height, plus padding.
+        zone = lowest + padding
+        # Clamp so we never reserve less than a sensible floor or more than
+        # half the page.
+        return max(120, min(zone, page_height * 0.5))
+    except Exception:
+        return default
+
+
 def generate_pdf(items_df, letterhead_bytes, header_info):
     packet = io.BytesIO()
     can = canvas.Canvas(packet, pagesize=A4)
@@ -124,12 +169,14 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     # The right side stays empty so the letterhead PDF underneath shows
     # through there.
     # TOP_LETTERHEAD_ZONE: pixels reserved at the top of every page for the
-    # letterhead's header band (logo + company name + Arabic text). Nothing
-    # the script draws may extend above this line, otherwise the logo gets
-    # covered. Matches the BOTTOM_LETTERHEAD_ZONE pattern for symmetry.
-    TOP_LETTERHEAD_ZONE = 170
+    # letterhead's header band. Probed from the uploaded letterhead so the
+    # gap auto-adjusts to whatever logo the user supplies; falls back to a
+    # safe constant if probing fails.
     PAGE_HEIGHT = 842  # A4 in points
-    top_y = PAGE_HEIGHT - TOP_LETTERHEAD_ZONE  # = 672
+    TOP_LETTERHEAD_ZONE = _probe_top_letterhead_zone(
+        letterhead_bytes, PAGE_HEIGHT, default=170
+    )
+    top_y = PAGE_HEIGHT - TOP_LETTERHEAD_ZONE
     CONTINUATION_PAGE_TOP_Y = top_y
     row_h = 18
     box_x, box_w = 30, 260
@@ -433,4 +480,3 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
 
     # No letterhead — return the layer as-is
     return packet.getvalue()
-
