@@ -358,10 +358,11 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
 
         items_y -= row_h_actual
 
-    # If totals + footer (~210pt) won't fit below the items, break to a new page
-    # Totals (~60pt) + Footer text (~152pt of write_line gaps + 22pt lead-in)
-    # = ~234pt below items_y. Reserve 240 to give a small safety buffer.
-    TOTALS_FOOTER_RESERVE = 240
+    # If totals + footer won't fit below the items, break to a new page.
+    # Totals (~60pt) + 22pt lead-in + footer's last text baseline at 138pt
+    # below footer_y + ~3pt descender = ~223pt of actual ink below items_y.
+    # Reserve 234 to leave ~11pt of bottom-margin safety.
+    TOTALS_FOOTER_RESERVE = 234
     if items_y - TOTALS_FOOTER_RESERVE < BOTTOM_LETTERHEAD_ZONE:
         can.showPage()
         items_y = CONTINUATION_PAGE_TOP_Y
