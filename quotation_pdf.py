@@ -281,8 +281,13 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     # this line, otherwise it covers the QR/address content underneath.
     BOTTOM_LETTERHEAD_ZONE = 130
     PAGE_BOTTOM_GUARD = BOTTOM_LETTERHEAD_ZONE
+    # See the TOTALS_FOOTER_RESERVE block farther down — same number, hoisted
+    # so the items loop can keep the totals glued to the last item.
+    TOTALS_FOOTER_RESERVE = 220
     can.setFont(font_name, 9)
-    for i, row in enumerate(items_df.itertuples(index=False), start=1):
+    items_list = list(items_df.itertuples(index=False))
+    n_items = len(items_list)
+    for i, row in enumerate(items_list, start=1):
         desc = shape(getattr(row, 'Product', ''))
         qty = getattr(row, 'Quantity', 0) or 0
         price = float(getattr(row, 'Price', 0) or 0)
@@ -296,8 +301,14 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         max_lines = max(len(item_lines), len(desc_lines))
         row_h_actual = max(row_h, line_h * max_lines + 6)
 
-        # Page break check using the *actual* row height
-        if items_y - row_h_actual < PAGE_BOTTOM_GUARD:
+        # Page break check using the *actual* row height. The LAST item also
+        # reserves space for the totals + footer block so the totals never
+        # get orphaned on their own page — if the last row + totals won't
+        # fit here, we break before the last row and draw row+totals on the
+        # next page together.
+        is_last = (i == n_items)
+        needed = row_h_actual + (TOTALS_FOOTER_RESERVE if is_last else 0)
+        if items_y - needed < PAGE_BOTTOM_GUARD:
             can.showPage()
             items_y = CONTINUATION_PAGE_TOP_Y
             items_y = draw_items_header(items_y)
@@ -358,14 +369,15 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
 
         items_y -= row_h_actual
 
-    # If totals + footer won't fit below the items, break to a new page.
-    # Totals (~60pt) + 14pt lead-in + footer's last text baseline at 138pt
-    # below footer_y + ~3pt descender = ~215pt of actual ink below items_y.
-    # Reserve 220 to leave ~5pt of bottom-margin safety.
-    TOTALS_FOOTER_RESERVE = 220
-    if items_y - TOTALS_FOOTER_RESERVE < BOTTOM_LETTERHEAD_ZONE:
-        can.showPage()
-        items_y = CONTINUATION_PAGE_TOP_Y
+    # Totals + footer fit here by construction — the items loop above
+    # reserved TOTALS_FOOTER_RESERVE for the last item, so we never need a
+    # separate page break for the totals.
+    #
+    # TOTALS_FOOTER_RESERVE = 220 (defined above):
+    #   3 totals rows × 18pt + 6pt items-gap = 60 (top of totals to bottom of
+    #   Net Amount row) + 14pt footer lead-in + footer's last text baseline at
+    #   138pt below footer_y + ~3pt descender = ~215pt of actual ink below
+    #   items_y. Reserve 220 to leave ~5pt of bottom-margin safety.
 
     # ============ TOTALS ============
     grand_total_excl = (items_df['Quantity'] * items_df['Price']).sum()
