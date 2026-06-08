@@ -359,10 +359,10 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         items_y -= row_h_actual
 
     # If totals + footer won't fit below the items, break to a new page.
-    # Totals (~60pt) + 22pt lead-in + footer's last text baseline at 138pt
-    # below footer_y + ~3pt descender = ~223pt of actual ink below items_y.
-    # Reserve 234 to leave ~11pt of bottom-margin safety.
-    TOTALS_FOOTER_RESERVE = 234
+    # Totals (~60pt) + 14pt lead-in + footer's last text baseline at 138pt
+    # below footer_y + ~3pt descender = ~215pt of actual ink below items_y.
+    # Reserve 220 to leave ~5pt of bottom-margin safety.
+    TOTALS_FOOTER_RESERVE = 220
     if items_y - TOTALS_FOOTER_RESERVE < BOTTOM_LETTERHEAD_ZONE:
         can.showPage()
         items_y = CONTINUATION_PAGE_TOP_Y
@@ -406,7 +406,10 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     totals_y -= row_h
 
     # ============ FOOTER (left-aligned text block) ============
-    footer_y = totals_y - 22
+    # 14pt lead-in below the totals table — tight enough that 7 items + totals
+    # + footer fit on page 1, loose enough that the footer still reads as a
+    # separate block from the totals.
+    footer_y = totals_y - 14
     can.setFont(font_name, 10)
 
     def line(x, txt, color=BLACK, bold=False, size=10):
