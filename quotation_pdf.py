@@ -241,7 +241,7 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     header_box_bottom = y  # bottom edge of the header box, used to position items below
 
     # ============ ITEMS TABLE ============
-    items_y = header_box_bottom - 14
+    items_y = header_box_bottom - 8
 
     # Column widths (sum = 535) — 6 columns, Item code between S.# and Description
     cols = [
@@ -281,9 +281,9 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     # this line, otherwise it covers the QR/address content underneath.
     BOTTOM_LETTERHEAD_ZONE = 130
     PAGE_BOTTOM_GUARD = BOTTOM_LETTERHEAD_ZONE
-    # See the TOTALS_FOOTER_RESERVE block farther down — same number, hoisted
-    # so the items loop can keep the totals glued to the last item.
-    TOTALS_FOOTER_RESERVE = 220
+    # Hoisted so the items loop can keep the totals glued to the last item
+    # while still packing as much as possible onto each page.
+    TOTALS_FOOTER_RESERVE = 208
     can.setFont(font_name, 9)
     items_list = list(items_df.itertuples(index=False))
     n_items = len(items_list)
@@ -301,11 +301,11 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
         max_lines = max(len(item_lines), len(desc_lines))
         row_h_actual = max(row_h, line_h * max_lines + 6)
 
-        # Page break check using the *actual* row height. The LAST item also
-        # reserves space for the totals + footer block so the totals never
-        # get orphaned on their own page — if the last row + totals won't
-        # fit here, we break before the last row and draw row+totals on the
-        # next page together.
+        # Page break check. The LAST item reserves space for the totals +
+        # footer block so the totals stay glued to it — if the last row +
+        # totals won't fit, we break before the row and draw row+totals
+        # together on the next page. Earlier items just check that they
+        # themselves fit (so page 1 packs greedily).
         is_last = (i == n_items)
         needed = row_h_actual + (TOTALS_FOOTER_RESERVE if is_last else 0)
         if items_y - needed < PAGE_BOTTOM_GUARD:
@@ -369,22 +369,19 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
 
         items_y -= row_h_actual
 
-    # Totals + footer fit here by construction — the items loop above
-    # reserved TOTALS_FOOTER_RESERVE for the last item, so we never need a
-    # separate page break for the totals.
-    #
-    # TOTALS_FOOTER_RESERVE = 220 (defined above):
-    #   3 totals rows × 18pt + 6pt items-gap = 60 (top of totals to bottom of
-    #   Net Amount row) + 14pt footer lead-in + footer's last text baseline at
-    #   138pt below footer_y + ~3pt descender = ~215pt of actual ink below
-    #   items_y. Reserve 220 to leave ~5pt of bottom-margin safety.
+    # Totals + footer fit here by construction — the items loop reserved
+    # TOTALS_FOOTER_RESERVE = 208 for the last item, so no separate break
+    # is needed. Geometry: 2pt items-gap + 3 totals rows × 18pt + 14pt
+    # footer lead-in + footer baselines (8 × 14pt + 4pt + 14pt = 130pt to
+    # Email baseline) + 3pt descender = ~203pt of actual ink below items_y.
+    # 208 leaves a 5pt safety margin above BOTTOM_LETTERHEAD_ZONE.
 
     # ============ TOTALS ============
     grand_total_excl = (items_df['Quantity'] * items_df['Price']).sum()
     vat_amount = grand_total_excl * 0.15
     net_amount = grand_total_excl + vat_amount
 
-    totals_y = items_y - 6
+    totals_y = items_y - 2
     company_vat = header_info.get("company_vat", "")
 
     # Row 1: "Grand Total : SAR Only." | amount
@@ -454,7 +451,7 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
     write_line(f"Payment Terms: {payment_terms}", color=RED)
     write_line(f"Bank Details:   {bank_name}", color=RED)
     write_line(f"IBAN   {account_no}")
-    footer_y_local[0] -= 22  # blank space between A/C No. and the regards line
+    footer_y_local[0] -= 14  # blank space between A/C No. and the regards line
     write_line("THANKS & BEST REGARDS", bold=True)
     contact_line = contact_name
     if contact_mobile:
