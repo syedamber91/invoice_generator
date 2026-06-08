@@ -363,15 +363,15 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
 
         items_y -= row_h_actual
 
-    # If the totals + footer block won't fit below the last item, push the
-    # whole block to a new page on its own. Items are packed greedily above,
-    # so this only fires when the page filled up with items.
-    # Geometry of the block: 2pt items-gap + 3 totals rows × 18pt + 14pt
-    # footer lead-in + footer baselines (8 × 14pt + 4pt + 14pt = 130pt to the
-    # Email baseline) + 3pt descender = ~203pt of actual ink below items_y.
-    # Reserve 208 to leave a ~5pt safety margin above BOTTOM_LETTERHEAD_ZONE.
-    TOTALS_FOOTER_RESERVE = 208
-    if items_y - TOTALS_FOOTER_RESERVE < BOTTOM_LETTERHEAD_ZONE:
+    # Two-stage overflow handling:
+    # 1. If the totals table alone (2pt items-gap + 3 × 18pt = 56pt) won't fit
+    #    on this page, break here so the totals AND the footer both land on
+    #    page 2.
+    # 2. Otherwise draw totals here (glued under the last item), then check
+    #    below — after the totals are drawn — whether the footer text block
+    #    fits. If not, the footer alone moves to page 2.
+    TOTALS_TABLE_HEIGHT = 56  # 2pt items-gap + 3 totals rows × 18pt
+    if items_y - TOTALS_TABLE_HEIGHT < BOTTOM_LETTERHEAD_ZONE:
         can.showPage()
         items_y = CONTINUATION_PAGE_TOP_Y
 
@@ -412,6 +412,17 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
          "Net Amount including 15% VAT", fmt_money(net_amount),
          label_w_ratio=0.78, font_size=10, value_bold=True, value_align="right")
     totals_y -= row_h
+
+    # If the footer text block won't fit above the letterhead's bottom band,
+    # move just the footer to a fresh page. The totals stay where they were
+    # drawn (glued under the last item on the previous page).
+    # Footer block height: 14pt lead-in + last text baseline at 130pt below
+    # footer_y (8 × 14pt + 4pt + 14pt mid-gap) + ~3pt descender = ~133pt of
+    # actual ink. Reserve 138 to leave ~5pt safety above BOTTOM_LETTERHEAD_ZONE.
+    FOOTER_BLOCK_HEIGHT = 138
+    if totals_y - FOOTER_BLOCK_HEIGHT < BOTTOM_LETTERHEAD_ZONE:
+        can.showPage()
+        totals_y = CONTINUATION_PAGE_TOP_Y
 
     # ============ FOOTER (left-aligned text block) ============
     # 14pt lead-in below the totals table — tight enough that 8 items + totals
