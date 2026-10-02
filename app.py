@@ -472,7 +472,7 @@ if not valid_items.empty:
         if pending:
             p_payload, p_pdf = pending["payload"], pending["pdf_bytes"]
             st.warning(
-                f"REF **{p_payload.get('ref') or p_payload.get('q_ref', '')}** is already in the Archive. "
+                f"REF **{p_payload.get('ref', '')}** / Q.Ref **{p_payload.get('q_ref', '')}** is already in the Archive. "
                 "Overwrite the existing entry, or keep both?"
             )
             col_over, col_new = st.columns(2)

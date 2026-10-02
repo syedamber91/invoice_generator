@@ -183,19 +183,20 @@ class Storage:
         ) or 0)
 
     def find_archive_by_ref(self, ref: str, q_ref: str = "") -> int | None:
-        """Id of the newest archive entry with this reference, or None.
+        """Id of the newest archive entry with this REF + Q.Ref pair, or None.
 
-        REF and Q.Ref are treated as the same identifier: if REF is empty we
-        use Q.Ref instead, and the saved entry matches on either column.
-        A reference that is blank in both fields never matches.
+        The pair (REF, Q.Ref) together is the unique key, so an empty REF
+        still matches an entry whose REF is also empty and Q.Ref is the same.
+        If both are blank there is nothing to match, so it is a new entry.
         """
-        key = (ref or "").strip() or (q_ref or "").strip()
-        if not key:
+        ref, q_ref = (ref or "").strip(), (q_ref or "").strip()
+        if not ref and not q_ref:
             return None
         rows = self.query(
-            "SELECT id FROM archive WHERE ref = ? OR q_ref = ? "
+            "SELECT id FROM archive "
+            "WHERE COALESCE(ref, '') = ? AND COALESCE(q_ref, '') = ? "
             "ORDER BY created_at DESC, id DESC LIMIT 1",
-            (key, key),
+            (ref, q_ref),
         )
         return int(rows[0][0]) if rows else None
 
