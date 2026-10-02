@@ -182,16 +182,21 @@ class Storage:
             (ref, q_ref, customer, "", json.dumps(payload, default=str), pdf_bytes, _utc_now_iso()),
         ) or 0)
 
-    def find_archive_by_ref(self, ref: str) -> int | None:
-        """Id of the newest archive entry with this REF, or None.
+    def find_archive_by_ref(self, ref: str, q_ref: str = "") -> int | None:
+        """Id of the newest archive entry with this REF + Q.Ref pair, or None.
 
-        A blank REF never matches, so it is always saved as a new entry.
+        The pair (REF, Q.Ref) together is the unique key, so an empty REF
+        still matches an entry whose REF is also empty and Q.Ref is the same.
+        If both are blank there is nothing to match, so it is a new entry.
         """
-        if not (ref or "").strip():
+        ref, q_ref = (ref or "").strip(), (q_ref or "").strip()
+        if not ref and not q_ref:
             return None
         rows = self.query(
-            "SELECT id FROM archive WHERE ref = ? ORDER BY created_at DESC, id DESC LIMIT 1",
-            (ref,),
+            "SELECT id FROM archive "
+            "WHERE COALESCE(ref, '') = ? AND COALESCE(q_ref, '') = ? "
+            "ORDER BY created_at DESC, id DESC LIMIT 1",
+            (ref, q_ref),
         )
         return int(rows[0][0]) if rows else None
 
