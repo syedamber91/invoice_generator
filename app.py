@@ -453,7 +453,7 @@ if not valid_items.empty:
             if pdf_bytes:
                 # Persist the rendered PDF and the form snapshot so it can be
                 # retrieved later from the Archive panel in the sidebar.
-                if storage.find_archive_by_ref(payload.get("ref", "")) is None:
+                if storage.find_archive_by_ref(payload.get("ref", ""), payload.get("q_ref", "")) is None:
                     storage.archive_pdf(pdf_bytes=pdf_bytes, **_archive_fields(payload))
                     st.success("✅ PDF generated and saved to Archive")
                     _download_button(pdf_bytes, payload)
@@ -472,13 +472,13 @@ if not valid_items.empty:
         if pending:
             p_payload, p_pdf = pending["payload"], pending["pdf_bytes"]
             st.warning(
-                f"REF **{p_payload.get('ref', '')}** is already in the Archive. "
+                f"REF **{p_payload.get('ref') or p_payload.get('q_ref', '')}** is already in the Archive. "
                 "Overwrite the existing entry, or keep both?"
             )
             col_over, col_new = st.columns(2)
             if col_over.button("♻️ Overwrite existing", key="btn_arch_overwrite"):
                 # Look the entry up again in case it was deleted meanwhile.
-                target = storage.find_archive_by_ref(p_payload.get("ref", ""))
+                target = storage.find_archive_by_ref(p_payload.get("ref", ""), p_payload.get("q_ref", ""))
                 if target is None:
                     storage.archive_pdf(pdf_bytes=p_pdf, **_archive_fields(p_payload))
                 else:
