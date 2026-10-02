@@ -182,6 +182,32 @@ class Storage:
             (ref, q_ref, customer, "", json.dumps(payload, default=str), pdf_bytes, _utc_now_iso()),
         ) or 0)
 
+    def find_archive_by_ref(self, ref: str) -> int | None:
+        """Id of the newest archive entry with this REF, or None.
+
+        A blank REF never matches, so it is always saved as a new entry.
+        """
+        if not (ref or "").strip():
+            return None
+        rows = self.query(
+            "SELECT id FROM archive WHERE ref = ? ORDER BY created_at DESC, id DESC LIMIT 1",
+            (ref,),
+        )
+        return int(rows[0][0]) if rows else None
+
+    def update_archive(self, archive_id: int, ref: str, q_ref: str, customer: str,
+                       payload: dict, pdf_bytes: bytes) -> None:
+        """Overwrite an existing archive entry with a freshly generated PDF."""
+        self.execute(
+            """
+            UPDATE archive
+            SET ref = ?, q_ref = ?, customer = ?, payload_json = ?, pdf_blob = ?, created_at = ?
+            WHERE id = ?
+            """,
+            (ref, q_ref, customer, json.dumps(payload, default=str), pdf_bytes,
+             _utc_now_iso(), archive_id),
+        )
+
     def list_archive(self) -> list[dict]:
         rows = self.query(
             "SELECT id, ref, q_ref, customer, created_at FROM archive ORDER BY created_at DESC"

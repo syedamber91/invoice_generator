@@ -10,7 +10,7 @@ and a hosted Turso DB persisting drafts + archive across redeploys.
 |------|------|
 | `app.py` | Streamlit UI: 4-step form (Reference/Customer → Letterhead → Items → Footer/Bank), Drafts/Archive sidebar, Generate-PDF button |
 | `quotation_pdf.py` | All PDF drawing (ReportLab) + final overlay onto the letterhead via pypdf |
-| `storage.py` | Turso (libsql HTTPS) with local SQLite fallback. Tables: `drafts`, `archive` |
+| `storage.py` | Turso (libsql HTTPS) with local SQLite fallback. Tables: `drafts`, `archive`. Archive is de-duplicated by REF: regenerating an existing REF prompts Overwrite / Save as new copy |
 | `requirements.txt` | `streamlit pandas reportlab pypdf pymupdf openpyxl arabic-reshaper python-bidi libsql-client` |
 | `DEPLOYMENT.md` | Streamlit Cloud + Turso setup |
 | `Oasis Cotton Company - Letterhead.pdf` | The default letterhead used in dev |
