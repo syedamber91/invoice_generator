@@ -424,32 +424,72 @@ def _build_header_info(payload: dict) -> dict:
     return out
 
 
+def _archive_fields(payload):
+    return dict(
+        ref=payload.get("ref", ""),
+        q_ref=payload.get("q_ref", ""),
+        customer=payload.get("customer", ""),
+        payload=payload,
+    )
+
+
+def _download_button(pdf_bytes, payload):
+    fname = (payload.get("q_ref") or payload.get("ref") or "Quotation").replace("/", "-")
+    st.download_button(
+        "📥 Download PDF",
+        data=pdf_bytes,
+        file_name=f"Quotation_{fname}.pdf",
+        mime="application/pdf",
+    )
+
+
 if not valid_items.empty:
     if letterhead_file:
         if st.button("🚀 Generate PDF Quotation", type="primary"):
+            st.session_state.pop("pending_archive", None)
             payload = collect_payload(valid_items)
             header_info = _build_header_info(payload)
             pdf_bytes = generate_pdf(valid_items, letterhead_file, header_info)
             if pdf_bytes:
                 # Persist the rendered PDF and the form snapshot so it can be
                 # retrieved later from the Archive panel in the sidebar.
-                storage.archive_pdf(
-                    ref=payload.get("ref", ""),
-                    q_ref=payload.get("q_ref", ""),
-                    customer=payload.get("customer", ""),
-                    payload=payload,
-                    pdf_bytes=pdf_bytes,
-                )
-                st.success("✅ PDF generated and saved to Archive")
-                fname = (payload.get("q_ref") or payload.get("ref") or "Quotation").replace("/", "-")
-                st.download_button(
-                    "📥 Download PDF",
-                    data=pdf_bytes,
-                    file_name=f"Quotation_{fname}.pdf",
-                    mime="application/pdf",
-                )
+                if storage.find_archive_by_ref(payload.get("ref", "")) is None:
+                    storage.archive_pdf(pdf_bytes=pdf_bytes, **_archive_fields(payload))
+                    st.success("✅ PDF generated and saved to Archive")
+                    _download_button(pdf_bytes, payload)
+                else:
+                    # REF already archived: hold the PDF and let the user pick
+                    # (Streamlit reruns on every button press, so keep it in
+                    # session state).
+                    st.session_state["pending_archive"] = {
+                        "pdf_bytes": pdf_bytes,
+                        "payload": payload,
+                    }
             else:
                 st.error("Failed to generate PDF.")
+
+        pending = st.session_state.get("pending_archive")
+        if pending:
+            p_payload, p_pdf = pending["payload"], pending["pdf_bytes"]
+            st.warning(
+                f"REF **{p_payload.get('ref', '')}** is already in the Archive. "
+                "Overwrite the existing entry, or keep both?"
+            )
+            col_over, col_new = st.columns(2)
+            if col_over.button("♻️ Overwrite existing", key="btn_arch_overwrite"):
+                # Look the entry up again in case it was deleted meanwhile.
+                target = storage.find_archive_by_ref(p_payload.get("ref", ""))
+                if target is None:
+                    storage.archive_pdf(pdf_bytes=p_pdf, **_archive_fields(p_payload))
+                else:
+                    storage.update_archive(target, pdf_bytes=p_pdf, **_archive_fields(p_payload))
+                st.session_state.pop("pending_archive", None)
+                st.success("✅ Existing Archive entry overwritten")
+            elif col_new.button("➕ Save as new copy", key="btn_arch_new"):
+                storage.archive_pdf(pdf_bytes=p_pdf, **_archive_fields(p_payload))
+                st.session_state.pop("pending_archive", None)
+                st.success("✅ Saved to Archive as a new copy")
+            _download_button(p_pdf, p_payload)
     else:
         st.warning("Upload a letterhead PDF (Step 2) to enable PDF generation.")
 else:
