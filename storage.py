@@ -182,23 +182,33 @@ class Storage:
             (ref, q_ref, customer, "", json.dumps(payload, default=str), pdf_bytes, _utc_now_iso()),
         ) or 0)
 
-    def find_archive_by_ref(self, ref: str, q_ref: str = "") -> int | None:
-        """Id of the newest archive entry with this REF + Q.Ref pair, or None.
+    def find_archive_matches(self, ref: str, q_ref: str, customer: str) -> list[int]:
+        """Ids of archive entries that are the same quotation, newest first.
 
-        The pair (REF, Q.Ref) together is the unique key, so an empty REF
-        still matches an entry whose REF is also empty and Q.Ref is the same.
-        If both are blank there is nothing to match, so it is a new entry.
+        Same quotation means the same (REF, Q.Ref) pair. When both are blank
+        there is no reference to compare, so we compare the customer name
+        instead (ignoring upper/lower case), among entries that are also
+        blank. If there is nothing to compare at all, the list is empty.
         """
         ref, q_ref = (ref or "").strip(), (q_ref or "").strip()
-        if not ref and not q_ref:
-            return None
-        rows = self.query(
+        customer = (customer or "").strip().lower()
+        sql = (
             "SELECT id FROM archive "
-            "WHERE COALESCE(ref, '') = ? AND COALESCE(q_ref, '') = ? "
-            "ORDER BY created_at DESC, id DESC LIMIT 1",
-            (ref, q_ref),
+            "WHERE TRIM(COALESCE(ref, '')) = ? AND TRIM(COALESCE(q_ref, '')) = ? "
         )
-        return int(rows[0][0]) if rows else None
+        params: list = [ref, q_ref]
+        if not ref and not q_ref:
+            if not customer:
+                return []
+            sql += "AND LOWER(TRIM(COALESCE(customer, ''))) = ? "
+            params.append(customer)
+        rows = self.query(sql + "ORDER BY created_at DESC, id DESC", params)
+        return [int(r[0]) for r in rows]
+
+    def find_archive_by_ref(self, ref: str, q_ref: str = "", customer: str = "") -> int | None:
+        """Id of the newest archive entry that is the same quotation, or None."""
+        matches = self.find_archive_matches(ref, q_ref, customer)
+        return matches[0] if matches else None
 
     def update_archive(self, archive_id: int, ref: str, q_ref: str, customer: str,
                        payload: dict, pdf_bytes: bytes) -> None:

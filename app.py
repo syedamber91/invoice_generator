@@ -433,6 +433,32 @@ def _archive_fields(payload):
     )
 
 
+def _archive_label(payload):
+    """Short name for messages: REF / Q.Ref if filled, else the customer."""
+    parts = [payload.get("ref", ""), payload.get("q_ref", "")]
+    return " / ".join(p.strip() for p in parts if p and p.strip()) or payload.get("customer", "") or "This quotation"
+
+
+def _find_existing_archive(payload):
+    """Id of the archive entry for this same quotation, or None."""
+    return storage.find_archive_by_ref(
+        payload.get("ref", ""), payload.get("q_ref", ""), payload.get("customer", "")
+    )
+
+
+def _overwrite_archive(payload, pdf_bytes):
+    """Update the newest matching entry and remove older duplicates of it."""
+    matches = storage.find_archive_matches(
+        payload.get("ref", ""), payload.get("q_ref", ""), payload.get("customer", "")
+    )
+    if not matches:
+        storage.archive_pdf(pdf_bytes=pdf_bytes, **_archive_fields(payload))
+        return
+    storage.update_archive(matches[0], pdf_bytes=pdf_bytes, **_archive_fields(payload))
+    for old_id in matches[1:]:
+        storage.delete_archive(old_id)
+
+
 def _download_button(pdf_bytes, payload):
     fname = (payload.get("q_ref") or payload.get("ref") or "Quotation").replace("/", "-")
     st.download_button(
@@ -453,7 +479,7 @@ if not valid_items.empty:
             if pdf_bytes:
                 # Persist the rendered PDF and the form snapshot so it can be
                 # retrieved later from the Archive panel in the sidebar.
-                if storage.find_archive_by_ref(payload.get("ref", ""), payload.get("q_ref", "")) is None:
+                if _find_existing_archive(payload) is None:
                     storage.archive_pdf(pdf_bytes=pdf_bytes, **_archive_fields(payload))
                     st.success("✅ PDF generated and saved to Archive")
                     _download_button(pdf_bytes, payload)
@@ -472,17 +498,12 @@ if not valid_items.empty:
         if pending:
             p_payload, p_pdf = pending["payload"], pending["pdf_bytes"]
             st.warning(
-                f"REF **{p_payload.get('ref', '')}** / Q.Ref **{p_payload.get('q_ref', '')}** is already in the Archive. "
+                f"**{_archive_label(p_payload)}** is already in the Archive. "
                 "Overwrite the existing entry, or keep both?"
             )
             col_over, col_new = st.columns(2)
             if col_over.button("♻️ Overwrite existing", key="btn_arch_overwrite"):
-                # Look the entry up again in case it was deleted meanwhile.
-                target = storage.find_archive_by_ref(p_payload.get("ref", ""), p_payload.get("q_ref", ""))
-                if target is None:
-                    storage.archive_pdf(pdf_bytes=p_pdf, **_archive_fields(p_payload))
-                else:
-                    storage.update_archive(target, pdf_bytes=p_pdf, **_archive_fields(p_payload))
+                _overwrite_archive(p_payload, p_pdf)
                 st.session_state.pop("pending_archive", None)
                 st.success("✅ Existing Archive entry overwritten")
             elif col_new.button("➕ Save as new copy", key="btn_arch_new"):
