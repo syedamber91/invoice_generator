@@ -484,7 +484,8 @@ if not valid_items.empty:
                     st.success("✅ PDF generated and saved to Archive")
                     _download_button(pdf_bytes, payload)
                 else:
-                    # REF already archived: hold the PDF and let the user pick
+                    # Already archived: hold the PDF and let the user pick.
+                    # The Download button only appears after they choose.
                     # (Streamlit reruns on every button press, so keep it in
                     # session state).
                     st.session_state["pending_archive"] = {
@@ -506,11 +507,12 @@ if not valid_items.empty:
                 _overwrite_archive(p_payload, p_pdf)
                 st.session_state.pop("pending_archive", None)
                 st.success("✅ Existing Archive entry overwritten")
+                _download_button(p_pdf, p_payload)
             elif col_new.button("➕ Save as new copy", key="btn_arch_new"):
                 storage.archive_pdf(pdf_bytes=p_pdf, **_archive_fields(p_payload))
                 st.session_state.pop("pending_archive", None)
                 st.success("✅ Saved to Archive as a new copy")
-            _download_button(p_pdf, p_payload)
+                _download_button(p_pdf, p_payload)
     else:
         st.warning("Upload a letterhead PDF (Step 2) to enable PDF generation.")
 else:
