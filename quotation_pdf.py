@@ -490,12 +490,13 @@ def generate_pdf(items_df, letterhead_bytes, header_info):
 
         output = PdfWriter()
         for i in range(len(new_pdf_layer.pages)):
-            # Re-parse the letterhead each time so merge_page mutates a fresh page
+            # Re-parse the letterhead each time so each page is an independent copy.
             fresh = PdfReader(io.BytesIO(raw))
             bg_idx = i if i < n_letterhead_pages else 0
-            bg_page = fresh.pages[bg_idx]
+            # Attach the page to the writer BEFORE merging: pypdf >= 7 raises
+            # DeprecationError if merge_page is called on a reader-owned page.
+            bg_page = output.add_page(fresh.pages[bg_idx])
             bg_page.merge_page(new_pdf_layer.pages[i])
-            output.add_page(bg_page)
 
         final = io.BytesIO()
         output.write(final)

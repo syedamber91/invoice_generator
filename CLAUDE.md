@@ -41,7 +41,9 @@ grows to fit the taller column.
 **Letterhead overlay:** quotation drawn on a separate canvas, then each page
 merged onto a fresh re-parse of the letterhead via pypdf's
 `bg_page.merge_page(layer_page)`. Re-parse per page is required — pypdf
-mutates the page object.
+mutates the page object. Attach the letterhead page to the writer first
+(`bg_page = output.add_page(...)`) and merge on that: pypdf 7 raises
+`DeprecationError` for `merge_page` on a reader-owned page.
 
 ## Storage
 
